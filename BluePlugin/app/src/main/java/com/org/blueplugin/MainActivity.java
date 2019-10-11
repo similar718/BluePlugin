@@ -24,6 +24,7 @@ import com.clj.fastble.data.BleDevice;
 import com.org.blueplugin.lib.BleDeviceInfo;
 import com.org.blueplugin.lib.BlePluginManager;
 import com.org.blueplugin.lib.BlueToothPluginListener;
+import com.org.blueplugin.utils.GPSUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,7 +51,11 @@ public class MainActivity extends AppCompatActivity {
         mGetInfo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                checkPermissions();
+                if (GPSUtils.isOPen(mContext)) {
+                    checkPermissions();
+                } else {
+                    Toast.makeText(mContext,"请打开GPS定位权限",Toast.LENGTH_LONG).show();
+                }
             }
         });
         initBlueTooth();

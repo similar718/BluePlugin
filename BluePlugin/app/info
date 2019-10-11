@@ -1,3 +1,37 @@
 https://www.jianshu.com/p/ea63a1d674ef  Android BLE蓝牙踩坑总结
 Android 蓝牙发送信息息屏状态不能发送成功
 https://www.cnblogs.com/CharlesGrant/p/4748475.html Android GPS 取经纬度
+
+电子轮挡app通讯协议服务端对接协议文档
+版本变更记录
+日期	版本	描述	备注
+2019-9-18	V1.0	初版
+2019-10-9	V1.1	改版
+
+一、此通信协议基于HTTP(GET、POST)协议，用于服务器与电子轮挡APP数据传输。
+
+二、
+上报数据
+
+
+
+
+1、App将收到的数据上报到服务器。
+
+三、请求地址与端口
+
+119.23.226.237：9099
+
+四、APP上报数据
+数据包结构：
+JOSN格式
+	数据包内容：
+	{
+"Longitude": "104.43243"  //经度
+“Latitude“:“30.321432“	//纬度
+"StartTime ": 13:25, //时间
+"SerialNumber":32435325,电子轮挡序列号(区分不通的电子轮挡)
+"Temperature":30℃//芯片温度
+"ElectricQuantity":3.4V//电池电量
+"Frequency ":1323//按键次数
+}
