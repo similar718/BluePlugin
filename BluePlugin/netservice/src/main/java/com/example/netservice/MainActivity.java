@@ -13,6 +13,8 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.location.LocationProvider;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -25,14 +27,25 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.clj.fastble.data.BleDevice;
+import com.example.netservice.bean.UpServiceBean;
+import com.example.netservice.http.HttpUtil;
 import com.example.netservice.lib.BleDeviceInfo;
 import com.example.netservice.lib.BlePluginManager;
 import com.example.netservice.lib.BlueToothPluginListener;
+import com.example.netservice.utils.FastJsonUtil;
 import com.example.netservice.utils.GPSUtils;
+import com.example.netservice.utils.NetWorkUtils;
 import com.example.netservice.utils.Utils;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.FormBody;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 
 /**
@@ -74,7 +87,6 @@ public class MainActivity extends AppCompatActivity {
 
     private Context mContext;
 
-
     // 获取位置管理服务
     private LocationManager locationManager;
     String mProviderName = "";
@@ -95,7 +107,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (GPSUtils.isOPen(mContext)) {
-                    checkPermissions();
+                    if (NetWorkUtils.isNetConnected(mContext)) {
+                        checkPermissions();
+                    } else {
+                        Toast.makeText(mContext, "需要网络才能正常使用哦", Toast.LENGTH_LONG).show();
+                    }
                 } else {
                     Toast.makeText(mContext, "请打开GPS定位权限", Toast.LENGTH_LONG).show();
                 }
@@ -139,7 +155,12 @@ public class MainActivity extends AppCompatActivity {
                     //                                          int[] grantResults)
                     // to handle the case where the user grants the permission. See the documentation
                     // for ActivityCompat#requestPermissions for more details.
-                    Toast.makeText(mContext, "位置权限未打开", Toast.LENGTH_LONG).show();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(mContext, "位置权限未打开", Toast.LENGTH_LONG).show();
+                        }
+                    });
                     return;
                 }
                 lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
@@ -171,7 +192,12 @@ public class MainActivity extends AppCompatActivity {
                 //                                          int[] grantResults)
                 // to handle the case where the user grants the permission. See the documentation
                 // for ActivityCompat#requestPermissions for more details.
-                Toast.makeText(mContext, "位置权限未打开", Toast.LENGTH_LONG).show();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(mContext, "位置权限未打开", Toast.LENGTH_LONG).show();
+                    }
+                });
                 return;
             }
             locationManager.requestLocationUpdates(mProviderName, 1000, 1, locationListener);
@@ -367,10 +393,78 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     Log.e(TAG, "获取数据成功" + info.toString());
                     mResult.setText(info.toString());
+                    mInfo = info;
+                    // 上传到服务器
+                    mHandler.sendEmptyMessage(HANDLER_UPDATE_DATA_TO_SERVICE);
                 }
             });
         }
     };
+
+    private final int HANDLER_UPDATE_DATA_TO_SERVICE = 0x0101;
+    private BleDeviceInfo mInfo = null;
+
+    private Handler mHandler = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            switch (msg.what){
+                case HANDLER_UPDATE_DATA_TO_SERVICE: // 将数据转成json 并且上传到服务器
+                    // 将获取到的数据转化成我们需要的类
+                    updateServiceInfo();
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
+
+    private void updateServiceInfo(){
+        if (mInfo != null){
+            if (mLongitude != 0.0f && mLatitude != 0.0f) {
+                UpServiceBean bean = new UpServiceBean();
+                bean.setElectricQuantity(mInfo.getPower());
+                bean.setFrequency(mInfo.getNum());
+                bean.setLatitude(String.valueOf(mLatitude));
+                bean.setLongitude(String.valueOf(mLongitude));
+                bean.setSerialNumber(mInfo.getMac());
+                bean.setTemperature(mInfo.getTemperature());
+                bean.setStartTime(System.currentTimeMillis());
+                // 将数据转为json
+                String data = FastJsonUtil.objToJson(bean);
+                // 将数据上传到服务器
+                upService(data);
+            }
+        }
+    }
+
+    String url = "119.23.226.237:9099/dataReception";
+
+    private void upService(String data){
+        //接口地址
+        RequestBody requestBody = new FormBody.Builder() .add("param",data).build();
+            HttpUtil.sendOkHttpPostRequest(url, requestBody, new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(mContext,"上传服务器失败",Toast.LENGTH_SHORT).show();
+                    }
+                });
+                }
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    final String result = response.body().string();
+                    //result就是图片服务器返回的图片地址。
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(mContext,result,Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+            });
+    }
 
     private LocationListener locationListener = new LocationListener() {
 
@@ -414,7 +508,12 @@ public class MainActivity extends AppCompatActivity {
                 //                                          int[] grantResults)
                 // to handle the case where the user grants the permission. See the documentation
                 // for ActivityCompat#requestPermissions for more details.
-                Toast.makeText(mContext, "位置权限未打开", Toast.LENGTH_LONG).show();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(mContext, "位置权限未打开", Toast.LENGTH_LONG).show();
+                    }
+                });
                 return;
             }
             Location location = locationManager.getLastKnownLocation(provider);
