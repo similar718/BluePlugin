@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.os.Build;
+import android.os.Handler;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -28,6 +29,8 @@ import com.org.blueplugin.utils.GPSUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -70,6 +73,62 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
+    private Timer mTimer = null;
+    private TimerTask mTimerTask = null;
+    private static int count = 0;
+    private boolean isPause = false;
+    private boolean isStop = true;
+    private static int delay = 1000;  //1s
+    private static int period = 1000;  //1s
+
+    private void startTimer(){
+        if (mTimer == null) {
+            mTimer = new Timer();
+        }
+        if (mTimerTask == null) {
+            mTimerTask = new TimerTask() {
+                @Override
+                public void run() {
+                    Log.i(TAG, "count: "+String.valueOf(count));
+                    do {
+                        try {
+                            Log.i(TAG, "sleep(1000)...");
+                            Thread.sleep(1000);
+                            if (isStop){
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        mStatus.setText("当前状态：正在搜索设备");
+                                    }
+                                });
+                                isStop = false;
+                                startThread();
+                            }
+                        } catch (InterruptedException e) {
+                        }
+                    } while (isPause);
+                    count ++;
+                }
+            };
+        }
+
+        if(mTimer != null && mTimerTask != null ) {
+            mTimer.schedule(mTimerTask, delay, period);
+        }
+    }
+
+    private void stopTimer(){
+        if (mTimer != null) {
+            mTimer.cancel();
+            mTimer = null;
+        }
+        if (mTimerTask != null) {
+            mTimerTask.cancel();
+            mTimerTask = null;
+        }
+        count = 0;
+    }
+
     private void initBlueTooth(){
         BlePluginManager.getInstance().initBlueToothPlugin(getApplication());
     }
@@ -78,6 +137,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         BlePluginManager.getInstance().destroyBlueToothPlugin();
+        stopTimer();
     }
 
     private void checkPermissions() {
@@ -131,7 +191,9 @@ public class MainActivity extends AppCompatActivity {
                             .show();
                 } else {
                     mStatus.setText("当前状态：正在搜索设备");
+                    isStop = false;
                     startThread();
+                    startTimer();
                 }
                 break;
         }
@@ -150,7 +212,9 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == REQUEST_CODE_OPEN_GPS) {
             if (checkGPSIsOpen()) {
                 mStatus.setText("当前状态：正在搜索设备");
+                isStop = false;
                 startThread();
+                startTimer();
             }
         }
     }
@@ -164,6 +228,7 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(mContext,"搜索到目标设备",Toast.LENGTH_LONG).show();
                         Log.e(TAG,"搜索到目标设备");
                         mStatus.setText("当前状态：搜索到目标设备正在连接中");
+                        isStop = false;
                     }
                 });
             } else {
@@ -173,6 +238,7 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(mContext,"未搜索到目标设备",Toast.LENGTH_LONG).show();
                         Log.e(TAG,"未搜索到目标设备");
                         mStatus.setText("当前状态：未搜索到目标设备 请打开设备之后重试");
+                        isStop = true;
                     }
                 });
             }
@@ -186,6 +252,7 @@ public class MainActivity extends AppCompatActivity {
                     public void run() {
                         Log.e(TAG,"开始连接");
                         mStatus.setText("当前状态：开始连接");
+                        isStop = false;
                     }
                 });
             } else if (type == 1){
@@ -195,6 +262,7 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(mContext,"连接成功",Toast.LENGTH_LONG).show();
                         Log.e(TAG,"连接成功");
                         mStatus.setText("当前状态：连接成功 正准备获取数据");
+                        isStop = false;
                     }
                 });
             } else if (type == 2){
@@ -204,6 +272,7 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(mContext,"连接失败",Toast.LENGTH_LONG).show();
                         Log.e(TAG,"连接失败");
                         mStatus.setText("当前状态：连接失败");
+                        isStop = true;
                     }
                 });
             } else {
@@ -213,6 +282,7 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(mContext,"断开连接",Toast.LENGTH_LONG).show();
                         Log.e(TAG,"断开连接");
                         mStatus.setText("当前状态：设备 断开连接");
+                        isStop = true;
                     }
                 });
             }
