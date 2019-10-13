@@ -212,25 +212,26 @@ public class BlePluginManager {
         }
         // 按键次数
         String numstr = data.substring(34,42);
-        if (!"".equals(numstr) && null != numstr){
-            int da = Integer.parseInt(numstr);
-            if (da == 0){
-                info.setNum(0+"");
-            } else {
-                for (int i = 0;i<numstr.length();i++){
-                    int das = Integer.parseInt(numstr.substring(i,i+1));
-                    if (das == 0 && i != 0){
-                        int num = 0;
-                        int pos = 0;
-                        for (int j = (i-1); j>0;j--){
-                            int d = Integer.parseInt(numstr.substring(j,j+1));
-                            num = num + d * 16^pos;
-                        }
-                        info.setNum(num+"");
-                    }
-                }
-            }
-        }
+        info.setNum(String.valueOf(Integer.parseInt(numstr,16)));
+//        if (!"".equals(numstr) && null != numstr){
+//            int da = Integer.parseInt(numstr);
+//            if (da == 0){
+//                info.setNum(0+"");
+//            } else {
+//                for (int i = 0;i<numstr.length();i++){
+//                    int das = Integer.parseInt(numstr.substring(i,i+1));
+//                    if (das == 0 && i != 0){
+//                        int num = 0;
+//                        int pos = 0;
+//                        for (int j = (i-1); j>0;j--){
+//                            int d = Integer.parseInt(numstr.substring(j,j+1));
+//                            num = num + d * 16^pos;
+//                        }
+//                        info.setNum(num+"");
+//                    }
+//                }
+//            }
+//        }
         // mac 地址
         info.setMac(data.substring(42,54));
         info.setSend(data.substring(54,56));

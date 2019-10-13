@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">BluePlugin</string>
+    <string name="app_name">netService</string>
     <string name="please_open_blue">请先打开蓝牙</string>
 
     <string name="notifyTitle">提示</string>
