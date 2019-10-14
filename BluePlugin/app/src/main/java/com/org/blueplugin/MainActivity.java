@@ -9,7 +9,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.os.Build;
-import android.os.Handler;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -22,9 +21,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.clj.fastble.data.BleDevice;
-import com.org.blueplugin.lib.BleDeviceInfo;
-import com.org.blueplugin.lib.BlePluginManager;
-import com.org.blueplugin.lib.BlueToothPluginListener;
+import com.clj.fastble.lib.BleDeviceInfo;
+import com.clj.fastble.lib.BlePluginManager;
+import com.clj.fastble.lib.BlueToothPluginListener;
 import com.org.blueplugin.utils.GPSUtils;
 
 import java.util.ArrayList;
@@ -81,7 +80,13 @@ public class MainActivity extends AppCompatActivity {
     private static int delay = 1000;  //1s
     private static int period = 1000;  //1s
 
+    /**
+     * 为了保证一直在执行
+     */
     private void startTimer(){
+        if (mTimer != null && mTimerTask != null){
+            stopTimer();
+        }
         if (mTimer == null) {
             mTimer = new Timer();
         }
@@ -94,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
                         try {
                             Log.i(TAG, "sleep(1000)...");
                             Thread.sleep(1000);
-                            if (isStop){
+                            if (isStop){ // 如果当前扫描已经停止就开始下一次的扫描连接
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
@@ -111,12 +116,14 @@ public class MainActivity extends AppCompatActivity {
                 }
             };
         }
-
         if(mTimer != null && mTimerTask != null ) {
             mTimer.schedule(mTimerTask, delay, period);
         }
     }
 
+    /**
+     * 关闭定时器
+     */
     private void stopTimer(){
         if (mTimer != null) {
             mTimer.cancel();
@@ -129,6 +136,9 @@ public class MainActivity extends AppCompatActivity {
         count = 0;
     }
 
+    /**
+     * 初始化蓝牙控件
+     */
     private void initBlueTooth(){
         BlePluginManager.getInstance().initBlueToothPlugin(getApplication());
     }
@@ -140,6 +150,9 @@ public class MainActivity extends AppCompatActivity {
         stopTimer();
     }
 
+    /**
+     * 权限事件的监听 需要打开蓝牙 需要获取应用程序位置信息
+     */
     private void checkPermissions() {
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (!bluetoothAdapter.isEnabled()) {
@@ -163,7 +176,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
+    /**
+     * 权限监听 如果权限全部可以就可以开始扫描
+     * @param permission
+     */
     private void onPermissionGranted(String permission) {
         switch (permission) {
             case Manifest.permission.ACCESS_FINE_LOCATION:
@@ -199,6 +215,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 判断GPS是否打开
+     * @return
+     */
     private boolean checkGPSIsOpen() {
         LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         if (locationManager == null)
@@ -218,9 +238,13 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+    /**
+     * 扫描时候的监听返回情况
+     */
     BlueToothPluginListener mListener = new BlueToothPluginListener() {
         @Override
-        public void scanDevice(int type) {
+        public void scanDevice(int type) { // 设备扫描情况
             if (type == 1){
                 runOnUiThread(new Runnable() {
                     @Override
@@ -245,8 +269,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void connDevice(int type, BleDevice bleDevice) {
-            if (type == 0){ // 0 开始连接 1 连接成功 2 连接失败 3 断开连接
+        public void connDevice(int type, BleDevice bleDevice) { // 设备连接情况
+            if (type == 0){ // 0 开始连接 1 连接成功 2 连接失败 3 断开连接 4 连接的设备不是我需要的数据
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -275,7 +299,7 @@ public class MainActivity extends AppCompatActivity {
                         isStop = true;
                     }
                 });
-            } else {
+            } else if (type == 3){
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -285,11 +309,21 @@ public class MainActivity extends AppCompatActivity {
                         isStop = true;
                     }
                 });
+            } else {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(mContext,"断开连接 连接的设备不是我需要的数据",Toast.LENGTH_LONG).show();
+                        Log.e(TAG,"连接的设备不是我需要的数据");
+                        mStatus.setText("当前状态：设备 断开连接 连接的设备不是我需要的数据");
+                        isStop = true;
+                    }
+                });
             }
         }
 
         @Override
-        public void getDeviceInfo(final BleDeviceInfo info) {
+        public void getDeviceInfo(final BleDeviceInfo info) { // 连接成功并获取到需要的设备信息
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
