@@ -27,11 +27,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.clj.fastble.data.BleDevice;
+import com.clj.fastble.lib.BleDeviceInfo;
+import com.clj.fastble.lib.BlePluginManager;
+import com.clj.fastble.lib.BlueToothPluginListener;
 import com.example.netservice.bean.UpServiceBean;
 import com.example.netservice.http.HttpUtil;
-import com.example.netservice.lib.BleDeviceInfo;
-import com.example.netservice.lib.BlePluginManager;
-import com.example.netservice.lib.BlueToothPluginListener;
 import com.example.netservice.utils.FastJsonUtil;
 import com.example.netservice.utils.GPSUtils;
 import com.example.netservice.utils.NetWorkUtils;
@@ -117,7 +117,8 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     Toast.makeText(mContext, "请打开GPS定位权限", Toast.LENGTH_LONG).show();
                 }
-                upService("null");
+//                upServiceother("null");
+//                upService("null");
             }
         });
         initBlueTooth();
@@ -417,7 +418,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void connDevice(int type, BleDevice bleDevice) {
-            if (type == 0) { // 0 开始连接 1 连接成功 2 连接失败 3 断开连接
+            if (type == 0) { // 0 开始连接 1 连接成功 2 连接失败 3 断开连接 4 连接的设备不是我需要的数据
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -446,13 +447,23 @@ public class MainActivity extends AppCompatActivity {
                         isStop = true;
                     }
                 });
+            } else if (type == 3){
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(mContext,"断开连接",Toast.LENGTH_LONG).show();
+                        Log.e(TAG,"断开连接");
+                        mStatus.setText("当前状态：设备 断开连接");
+                        isStop = true;
+                    }
+                });
             } else {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(mContext, "断开连接", Toast.LENGTH_LONG).show();
-                        Log.e(TAG, "断开连接");
-                        mStatus.setText("当前状态：设备 断开连接");
+                        Toast.makeText(mContext,"断开连接 连接的设备不是我需要的数据",Toast.LENGTH_LONG).show();
+                        Log.e(TAG,"连接的设备不是我需要的数据");
+                        mStatus.setText("当前状态：设备 断开连接 连接的设备不是我需要的数据");
                         isStop = true;
                     }
                 });
@@ -466,11 +477,11 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     Log.e(TAG, "获取数据成功" + info.toString());
                     mResult.setText(info.toString());
-                    mInfo = info;
-                    // 上传到服务器
-                    mHandler.sendEmptyMessage(HANDLER_UPDATE_DATA_TO_SERVICE);
                 }
             });
+            mInfo = info;
+            // 上传到服务器
+            mHandler.sendEmptyMessage(HANDLER_UPDATE_DATA_TO_SERVICE);
         }
     };
 
@@ -540,6 +551,35 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
     }
+
+//    String url_other = "https://gateway.xmzt.cn/user/login/out";
+//    private void upServiceother(String data){
+//        //接口地址
+//        RequestBody requestBody = new FormBody.Builder() .add("token",data).build();
+//            HttpUtil.sendOkHttpPostRequest(url_other, requestBody, new Callback() {
+//                @Override
+//                public void onFailure(Call call, final IOException e) {runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        Toast.makeText(mContext,"上传服务器失败",Toast.LENGTH_SHORT).show();
+//                        Log.e("ooooooooooooooooooooo","e = "+e.toString());
+//                    }
+//                });
+//                }
+//                @Override
+//                public void onResponse(Call call, Response response) throws IOException {
+//                    final String result = response.body().string();
+//                    Log.e("ooooooooooooooooooooo","data = "+result);
+//                    //result就是图片服务器返回的图片地址。
+//                    runOnUiThread(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            Toast.makeText(mContext,result,Toast.LENGTH_SHORT).show();
+//                        }
+//                    });
+//                }
+//            });
+//    }
 
     private LocationListener locationListener = new LocationListener() {
 
