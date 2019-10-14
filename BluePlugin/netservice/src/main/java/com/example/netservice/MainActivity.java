@@ -481,7 +481,7 @@ public class MainActivity extends AppCompatActivity {
             });
             mInfo = info;
             // 上传到服务器
-            mHandler.sendEmptyMessage(HANDLER_UPDATE_DATA_TO_SERVICE);
+            mHandler.sendEmptyMessageDelayed(HANDLER_UPDATE_DATA_TO_SERVICE,1000);
         }
     };
 
@@ -551,35 +551,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
     }
-
-//    String url_other = "https://gateway.xmzt.cn/user/login/out";
-//    private void upServiceother(String data){
-//        //接口地址
-//        RequestBody requestBody = new FormBody.Builder() .add("token",data).build();
-//            HttpUtil.sendOkHttpPostRequest(url_other, requestBody, new Callback() {
-//                @Override
-//                public void onFailure(Call call, final IOException e) {runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        Toast.makeText(mContext,"上传服务器失败",Toast.LENGTH_SHORT).show();
-//                        Log.e("ooooooooooooooooooooo","e = "+e.toString());
-//                    }
-//                });
-//                }
-//                @Override
-//                public void onResponse(Call call, Response response) throws IOException {
-//                    final String result = response.body().string();
-//                    Log.e("ooooooooooooooooooooo","data = "+result);
-//                    //result就是图片服务器返回的图片地址。
-//                    runOnUiThread(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            Toast.makeText(mContext,result,Toast.LENGTH_SHORT).show();
-//                        }
-//                    });
-//                }
-//            });
-//    }
 
     private LocationListener locationListener = new LocationListener() {
 
