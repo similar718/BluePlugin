@@ -1,6 +1,7 @@
 package com.example.netservice;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
@@ -15,6 +16,7 @@ import android.location.LocationProvider;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -117,8 +119,6 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     Toast.makeText(mContext, "请打开GPS定位权限", Toast.LENGTH_LONG).show();
                 }
-//                upServiceother("null");
-//                upService("null");
             }
         });
         initBlueTooth();
@@ -143,7 +143,49 @@ public class MainActivity extends AppCompatActivity {
 
         // 为获取地理位置信息时设置查询条件
         String provider = locationManager.getBestProvider(criteria, true); // 获取GPS信息
+
+        acquireWakeLock();
     }
+
+
+    PowerManager.WakeLock wakeLock = null;
+    //获取电源锁，保持该服务在屏幕熄灭时仍然获取CPU时，保持运行，当TimerTask开始运行时加入如下方法
+    @SuppressLint("InvalidWakeLockTag")
+    private void acquireWakeLock(){
+        if (null == wakeLock){
+            PowerManager pm = (PowerManager)this.getSystemService(Context.POWER_SERVICE);
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK| PowerManager.ON_AFTER_RELEASE, "PostLocationService");
+            if (null != wakeLock){
+                wakeLock.acquire();
+            }
+        }
+        /**
+         *  上面第一个方法是获取锁，第二个方法是释放锁，一旦获取锁后，及时屏幕在熄灭或锁屏长时间后，系统后台一直可以保持获取到锁的应用程序运行。获取到PowerManager的实例pm后，再通过newWakeLock方法获取wakelock的实例，其中第一个参数是指定要获取哪种类型的锁，不同的锁对系统CPU、屏幕和键盘有不同的影响，第二个参数是自定义名称。
+         *
+         *     各种锁的类型对CPU 、屏幕、键盘的影响：
+         *
+         *     PARTIAL_WAKE_LOCK:保持CPU 运转，屏幕和键盘灯有可能是关闭的。
+         *
+         *     SCREEN_DIM_WAKE_LOCK：保持CPU 运转，允许保持屏幕显示但有可能是灰的，允许关闭键盘灯
+         *
+         *     SCREEN_BRIGHT_WAKE_LOCK：保持CPU 运转，允许保持屏幕高亮显示，允许关闭键盘灯
+         *
+         *     FULL_WAKE_LOCK：保持CPU 运转，保持屏幕高亮显示，键盘灯也保持亮度
+         *
+         *     ACQUIRE_CAUSES_WAKEUP：强制使屏幕亮起，这种锁主要针对一些必须通知用户的操作.
+         *
+         *     ON_AFTER_RELEASE：当锁被释放时，保持屏幕亮起一段时间
+         */
+    }
+
+    //释放设备电源锁
+    private void releaseWakeLock() {
+        if (null != wakeLock) {
+            wakeLock.release();
+            wakeLock = null;
+        }
+    }
+
 
     @Override
     public void onStart() {
@@ -240,8 +282,8 @@ public class MainActivity extends AppCompatActivity {
     private static int delay = 1000;  //1s
     private static int period = 1000;  //1s
 
-    private void startTimer(){
-        if (mTimer != null && mTimerTask != null){
+    private void startTimer() {
+        if (mTimer != null && mTimerTask != null) {
             stopTimer();
         }
         if (mTimer == null) {
@@ -251,12 +293,12 @@ public class MainActivity extends AppCompatActivity {
             mTimerTask = new TimerTask() {
                 @Override
                 public void run() {
-                    Log.i(TAG, "count: "+String.valueOf(count));
+                    Log.i(TAG, "count: " + String.valueOf(count));
                     do {
                         try {
                             Log.i(TAG, "sleep(1000)...");
                             Thread.sleep(1000);
-                            if (isStop){
+                            if (isStop) {
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
@@ -269,16 +311,16 @@ public class MainActivity extends AppCompatActivity {
                         } catch (InterruptedException e) {
                         }
                     } while (isPause);
-                    count ++;
+                    count++;
                 }
             };
         }
-        if(mTimer != null && mTimerTask != null ) {
+        if (mTimer != null && mTimerTask != null) {
             mTimer.schedule(mTimerTask, delay, period);
         }
     }
 
-    private void stopTimer(){
+    private void stopTimer() {
         if (mTimer != null) {
             mTimer.cancel();
             mTimer = null;
@@ -309,6 +351,7 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         BlePluginManager.getInstance().destroyBlueToothPlugin();
         stopTimer();
+        releaseWakeLock();
     }
 
     private void checkPermissions() {
@@ -318,7 +361,8 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        String[] permissions = {Manifest.permission.ACCESS_FINE_LOCATION};
+        String[] permissions = {Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.WAKE_LOCK};
         List<String> permissionDeniedList = new ArrayList<>();
         for (String permission : permissions) {
             int permissionCheck = ContextCompat.checkSelfPermission(this, permission);
@@ -447,12 +491,12 @@ public class MainActivity extends AppCompatActivity {
                         isStop = true;
                     }
                 });
-            } else if (type == 3){
+            } else if (type == 3) {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(mContext,"断开连接",Toast.LENGTH_LONG).show();
-                        Log.e(TAG,"断开连接");
+                        Toast.makeText(mContext, "断开连接", Toast.LENGTH_LONG).show();
+                        Log.e(TAG, "断开连接");
                         mStatus.setText("当前状态：设备 断开连接");
                         isStop = true;
                     }
@@ -461,8 +505,8 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(mContext,"断开连接 连接的设备不是我需要的数据",Toast.LENGTH_LONG).show();
-                        Log.e(TAG,"连接的设备不是我需要的数据");
+                        Toast.makeText(mContext, "断开连接 连接的设备不是我需要的数据", Toast.LENGTH_LONG).show();
+                        Log.e(TAG, "连接的设备不是我需要的数据");
                         mStatus.setText("当前状态：设备 断开连接 连接的设备不是我需要的数据");
                         isStop = true;
                     }
@@ -481,18 +525,18 @@ public class MainActivity extends AppCompatActivity {
             });
             mInfo = info;
             // 上传到服务器
-            mHandler.sendEmptyMessageDelayed(HANDLER_UPDATE_DATA_TO_SERVICE,1000);
+            mHandler.sendEmptyMessageDelayed(HANDLER_UPDATE_DATA_TO_SERVICE, 1000);
         }
     };
 
     private final int HANDLER_UPDATE_DATA_TO_SERVICE = 0x0101;
     private BleDeviceInfo mInfo = null;
 
-    private Handler mHandler = new Handler(){
+    private Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            switch (msg.what){
+            switch (msg.what) {
                 case HANDLER_UPDATE_DATA_TO_SERVICE: // 将数据转成json 并且上传到服务器
                     // 将获取到的数据转化成我们需要的类
                     updateServiceInfo();
@@ -503,8 +547,8 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private void updateServiceInfo(){
-        if (mInfo != null){
+    private void updateServiceInfo() {
+        if (mInfo != null) {
             if (mLongitude != 0.0f && mLatitude != 0.0f) {
                 UpServiceBean bean = new UpServiceBean();
                 bean.setElectricQuantity(mInfo.getPower());
@@ -518,9 +562,28 @@ public class MainActivity extends AppCompatActivity {
                 String data = FastJsonUtil.objToJson(bean);
                 // 将数据上传到服务器
                 upService(data);
+            } else {
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return;
+                }
+                mIsUpdateService = true;
+                if (mProviderName != null && !"".equals(mProviderName)) {
+                    locationManager.requestLocationUpdates(mProviderName, 1000, 1, locationListener);
+                } else {
+                    Toast.makeText(mContext, "获取GPS经纬度信息不全,请打开重试", Toast.LENGTH_LONG).show();
+                }
             }
         }
     }
+
+    private boolean mIsUpdateService = false;
 
     String url = "http://119.23.226.237:9099/dataReception";
 
@@ -625,5 +688,9 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(getApplicationContext(), "经度：" + location.getLongitude() + "纬度：" + location.getLatitude(), Toast.LENGTH_SHORT).show();
         Log.i("", "经度：" + location.getLongitude());
         Log.i("", "纬度：" + location.getLatitude());
+        if (mIsUpdateService){
+            mIsUpdateService = false;
+            updateServiceInfo();
+        }
     }
 }
