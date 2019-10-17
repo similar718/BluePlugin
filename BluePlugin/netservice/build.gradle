@@ -32,4 +32,8 @@ dependencies {
     //fastjson
     implementation 'com.alibaba:fastjson:1.2.57'
     implementation 'com.squareup.okhttp3:logging-interceptor:3.11.0'
+    // room数据库
+    // room 配合 RxJava
+    implementation 'android.arch.persistence.room:runtime:1.0.0'
+    annotationProcessor 'android.arch.persistence.room:compiler:1.0.0'
 }

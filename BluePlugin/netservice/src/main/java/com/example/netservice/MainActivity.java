@@ -145,7 +145,6 @@ public class MainActivity extends AppCompatActivity {
         String provider = locationManager.getBestProvider(criteria, true); // 获取GPS信息
     }
 
-
     PowerManager.WakeLock wakeLock = null;
     //获取电源锁，保持该服务在屏幕熄灭时仍然获取CPU时，保持运行，当TimerTask开始运行时加入如下方法
     @SuppressLint("InvalidWakeLockTag")
@@ -548,7 +547,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateServiceInfo() {
         if (mInfo != null) {
-            if (mLongitude != 0.0f && mLatitude != 0.0f) {
+//            if (mLongitude != 0.0f && mLatitude != 0.0f) {
                 UpServiceBean bean = new UpServiceBean();
                 bean.setElectricQuantity(mInfo.getPower());
                 bean.setFrequency(mInfo.getNum());
@@ -561,59 +560,59 @@ public class MainActivity extends AppCompatActivity {
                 String data = FastJsonUtil.objToJson(bean);
                 // 将数据上传到服务器
                 upService(data);
-            } else {
-                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-                    return;
-                }
-                mIsUpdateService = true;
-                if (mProviderName != null && !"".equals(mProviderName)) {
-                    locationManager.requestLocationUpdates(mProviderName, 1000, 1, locationListener);
-                } else {
-                    mIsUpdateService = true;
-                    if (openGPSSettings()) {
-                        Location lastKnownLocation = null;
-                        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                            // TODO: Consider calling
-                            //    ActivityCompat#requestPermissions
-                            // here to request the missing permissions, and then overriding
-                            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                            //                                          int[] grantResults)
-                            // to handle the case where the user grants the permission. See the documentation
-                            // for ActivityCompat#requestPermissions for more details.
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    Toast.makeText(mContext, "位置权限未打开", Toast.LENGTH_LONG).show();
-                                }
-                            });
-                            return;
-                        }
-                        lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                        mProviderName = LocationManager.GPS_PROVIDER;
-                        if (lastKnownLocation == null) {
-                            lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                            mProviderName = LocationManager.NETWORK_PROVIDER;
-                        }
-                        if (mProviderName != null && !"".equals(mProviderName)) {
-                            locationManager.requestLocationUpdates(mProviderName, 1000, 1, locationListener);
-                        }
-                    } else {
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                Toast.makeText(mContext, "GPS没有打开", Toast.LENGTH_LONG).show();
-                            }
-                        });
-                    }
-                }
-            }
+//            } else {
+//                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+//                    // TODO: Consider calling
+//                    //    ActivityCompat#requestPermissions
+//                    // here to request the missing permissions, and then overriding
+//                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+//                    //                                          int[] grantResults)
+//                    // to handle the case where the user grants the permission. See the documentation
+//                    // for ActivityCompat#requestPermissions for more details.
+//                    return;
+//                }
+//                mIsUpdateService = true;
+//                if (mProviderName != null && !"".equals(mProviderName)) {
+//                    locationManager.requestLocationUpdates(mProviderName, 1000, 1, locationListener);
+//                } else {
+//                    mIsUpdateService = true;
+//                    if (openGPSSettings()) {
+//                        Location lastKnownLocation = null;
+//                        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+//                            // TODO: Consider calling
+//                            //    ActivityCompat#requestPermissions
+//                            // here to request the missing permissions, and then overriding
+//                            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+//                            //                                          int[] grantResults)
+//                            // to handle the case where the user grants the permission. See the documentation
+//                            // for ActivityCompat#requestPermissions for more details.
+//                            runOnUiThread(new Runnable() {
+//                                @Override
+//                                public void run() {
+//                                    Toast.makeText(mContext, "位置权限未打开", Toast.LENGTH_LONG).show();
+//                                }
+//                            });
+//                            return;
+//                        }
+//                        lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+//                        mProviderName = LocationManager.GPS_PROVIDER;
+//                        if (lastKnownLocation == null) {
+//                            lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+//                            mProviderName = LocationManager.NETWORK_PROVIDER;
+//                        }
+//                        if (mProviderName != null && !"".equals(mProviderName)) {
+//                            locationManager.requestLocationUpdates(mProviderName, 1000, 1, locationListener);
+//                        }
+//                    } else {
+//                        runOnUiThread(new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                Toast.makeText(mContext, "GPS没有打开", Toast.LENGTH_LONG).show();
+//                            }
+//                        });
+//                    }
+//                }
+//            }
         }
     }
 
