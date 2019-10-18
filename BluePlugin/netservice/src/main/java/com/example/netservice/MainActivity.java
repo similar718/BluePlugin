@@ -34,6 +34,8 @@ import com.clj.fastble.lib.BlePluginManager;
 import com.clj.fastble.lib.BlueToothPluginListener;
 import com.example.netservice.bean.UpServiceBean;
 import com.example.netservice.http.HttpUtil;
+import com.example.netservice.roomdb.TourDatabase;
+import com.example.netservice.roomdb.beans.GroupUserInfo;
 import com.example.netservice.utils.FastJsonUtil;
 import com.example.netservice.utils.GPSUtils;
 import com.example.netservice.utils.NetWorkUtils;
@@ -545,7 +547,37 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private int up_num = 6;
+    private long up_time = 1000*60*3L;
+
     private void updateServiceInfo() {
+        // 保存到数据库
+        GroupUserInfo info = TourDatabase.getDefault(mContext).getGroupUserInfoDao().getData(mInfo.getMac());
+        if (info == null){
+            info = new GroupUserInfo();
+            info.mac = mInfo.getMac();
+            info.time = System.currentTimeMillis();
+            info.up_num = 1;
+            TourDatabase.getDefault(mContext).getGroupUserInfoDao().insert(info);
+        } else {
+            if (info.up_num < up_num){ // 当前用户上传次数 次数在规定之类
+                if ((System.currentTimeMillis() - info.time) < up_time){
+                    info.up_num += 1;//加一次
+                    TourDatabase.getDefault(mContext).getGroupUserInfoDao().insert(info);
+                } else {
+                    info.time = System.currentTimeMillis();
+                    info.up_num = 1;
+                    TourDatabase.getDefault(mContext).getGroupUserInfoDao().insert(info);
+                }
+            } else if ((System.currentTimeMillis() - info.time) > up_time){ // 时间在三分钟外
+                info.time = System.currentTimeMillis();
+                info.up_num = 1;
+                TourDatabase.getDefault(mContext).getGroupUserInfoDao().insert(info);
+            } else {
+                return;
+            }
+        }
+
         if (mInfo != null) {
 //            if (mLongitude != 0.0f && mLatitude != 0.0f) {
                 UpServiceBean bean = new UpServiceBean();

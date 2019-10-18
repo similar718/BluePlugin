@@ -1,6 +1,5 @@
 package com.example.netservice.roomdb.dao;
 
-
 import android.arch.persistence.room.Dao;
 import android.arch.persistence.room.Delete;
 import android.arch.persistence.room.Insert;
@@ -28,15 +27,15 @@ public interface GroupUserInfoDao {
      * 查询当前指定群内所有缓存
      * @return
      */
-    @Query("SELECT * FROM GroupUserInfo where groupId = :groupid")
-    List<GroupUserInfo> getDataAll(String groupid);
+    @Query("SELECT * FROM GroupUserInfo where mac = :groupid")
+    GroupUserInfo getData(String groupid);
 
 
     /**
      * 删除当前指定群类所有消息
      * @param groupid
      */
-    @Query("DELETE FROM GroupUserInfo WHERE groupId = :groupid")
+    @Query("DELETE FROM GroupUserInfo WHERE mac = :groupid")
     int deleteFunTypes(String groupid);
 
     /**
@@ -71,6 +70,6 @@ public interface GroupUserInfoDao {
     /**
      * 删除群中的这个用户
      */
-    @Query("DELETE FROM GroupUserInfo WHERE groupId = :groupId and userId = :userId")
+    @Query("DELETE FROM GroupUserInfo WHERE mac = :groupId")
     void delete(String groupId, String userId);
 }

@@ -1,11 +1,10 @@
 package com.example.netservice.roomdb;
 
+import android.arch.persistence.room.Database;
+import android.arch.persistence.room.Room;
+import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
-
-import androidx.annotation.VisibleForTesting;
-import androidx.room.Database;
-import androidx.room.Room;
-import androidx.room.RoomDatabase;
+import android.support.annotation.VisibleForTesting;
 
 import com.example.netservice.roomdb.beans.GroupUserInfo;
 import com.example.netservice.roomdb.dao.GroupUserInfoDao;
