@@ -57,7 +57,6 @@ public class GPSService extends Service {
 
     @Override
     public void onCreate() {
-        //
         startService();
         Log.v(tag, "GPSService Started.");
     }

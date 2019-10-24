@@ -8,7 +8,9 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Address;
 import android.location.Criteria;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -33,16 +35,20 @@ import com.clj.fastble.lib.BleDeviceInfo;
 import com.clj.fastble.lib.BlePluginManager;
 import com.clj.fastble.lib.BlueToothPluginListener;
 import com.example.netservice.bean.UpServiceBean;
+import com.example.netservice.config.Constants;
 import com.example.netservice.http.HttpUtil;
 import com.example.netservice.roomdb.TourDatabase;
 import com.example.netservice.roomdb.beans.GroupUserInfo;
+import com.example.netservice.service.GPSService;
 import com.example.netservice.utils.FastJsonUtil;
 import com.example.netservice.utils.GPSUtils;
 import com.example.netservice.utils.NetWorkUtils;
 import com.example.netservice.utils.Utils;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -52,7 +58,6 @@ import okhttp3.Callback;
 import okhttp3.FormBody;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-
 
 /**
  *
@@ -88,6 +93,7 @@ public class MainActivity extends AppCompatActivity {
     private Button mGetInfo;
     private TextView mResult;
     private TextView mStatus;
+    private TextView mLocationTxt;
     private static final int REQUEST_CODE_OPEN_GPS = 1;
     private static final int REQUEST_CODE_PERMISSION_LOCATION = 2;
 
@@ -108,6 +114,12 @@ public class MainActivity extends AppCompatActivity {
         mGetInfo = findViewById(R.id.btn_get_info);
         mResult = findViewById(R.id.tv_result);
         mStatus = findViewById(R.id.tv_status);
+        mLocationTxt = findViewById(R.id.tv_location_txt);
+        // 启动GPS定位服务
+        startGPSService();
+
+        String mLocation = "GPS服务定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude +"\n界面定位信息\n经度："+mLatitude+"\n纬度："+mLongitude;
+        mLocationTxt.setText(mLocation);
 
         mGetInfo.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -148,13 +160,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     PowerManager.WakeLock wakeLock = null;
+
     //获取电源锁，保持该服务在屏幕熄灭时仍然获取CPU时，保持运行，当TimerTask开始运行时加入如下方法
     @SuppressLint("InvalidWakeLockTag")
-    private void acquireWakeLock(){
-        if (null == wakeLock){
-            PowerManager pm = (PowerManager)this.getSystemService(Context.POWER_SERVICE);
-            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK| PowerManager.ON_AFTER_RELEASE, "PostLocationService");
-            if (null != wakeLock){
+    private void acquireWakeLock() {
+        if (null == wakeLock) {
+            PowerManager pm = (PowerManager) this.getSystemService(Context.POWER_SERVICE);
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ON_AFTER_RELEASE, "PostLocationService");
+            if (null != wakeLock) {
                 wakeLock.acquire();
             }
         }
@@ -352,6 +365,7 @@ public class MainActivity extends AppCompatActivity {
         BlePluginManager.getInstance().destroyBlueToothPlugin();
         stopTimer();
         releaseWakeLock();
+        setStopGPSService();
     }
 
     private void checkPermissions() {
@@ -361,7 +375,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        String[] permissions = {Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION,
+        String[] permissions = {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.WAKE_LOCK};
         List<String> permissionDeniedList = new ArrayList<>();
         for (String permission : permissions) {
@@ -408,10 +422,25 @@ public class MainActivity extends AppCompatActivity {
                     mStatus.setText("当前状态：正在搜索设备");
                     isStop = false;
                     startThread();
+                    startGPSService();
                     startTimer();
+                    String mLocation = "GPS服务定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude +"\n界面定位信息\n经度："+mLatitude+"\n纬度："+mLongitude;
+                    mLocationTxt.setText(mLocation);
                 }
                 break;
         }
+    }
+
+    private void startGPSService() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            this.getApplicationContext().startService(new Intent(this, GPSService.class));
+        } else {
+            this.getApplicationContext().startService(new Intent(this, GPSService.class));
+        }
+    }
+
+    private void setStopGPSService() {
+        this.getApplicationContext().stopService(new Intent(this, GPSService.class));
     }
 
     private boolean checkGPSIsOpen() {
@@ -429,7 +458,10 @@ public class MainActivity extends AppCompatActivity {
                 mStatus.setText("当前状态：正在搜索设备");
                 isStop = false;
                 startThread();
+                startGPSService();
                 startTimer();
+                String mLocation = "GPS服务定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude +"\n界面定位信息\n经度："+mLatitude+"\n纬度："+mLongitude;
+                mLocationTxt.setText(mLocation);
             }
         }
     }
@@ -445,6 +477,8 @@ public class MainActivity extends AppCompatActivity {
                         Log.e(TAG, "搜索到目标设备");
                         mStatus.setText("当前状态：搜索到目标设备正在连接中");
                         isStop = false;
+                        String mLocation = "GPS服务定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude +"\n界面定位信息\n经度："+mLatitude+"\n纬度："+mLongitude;
+                        mLocationTxt.setText(mLocation);
                     }
                 });
             } else {
@@ -455,6 +489,8 @@ public class MainActivity extends AppCompatActivity {
                         Log.e(TAG, "未搜索到目标设备");
                         mStatus.setText("当前状态：未搜索到目标设备 请打开设备之后重试");
                         isStop = true;
+                        String mLocation = "GPS服务定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude +"\n界面定位信息\n经度："+mLatitude+"\n纬度："+mLongitude;
+                        mLocationTxt.setText(mLocation);
                     }
                 });
             }
@@ -469,6 +505,8 @@ public class MainActivity extends AppCompatActivity {
                         Log.e(TAG, "开始连接");
                         mStatus.setText("当前状态：开始连接");
                         isStop = false;
+                        String mLocation = "GPS服务定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude +"\n界面定位信息\n经度："+mLatitude+"\n纬度："+mLongitude;
+                        mLocationTxt.setText(mLocation);
                     }
                 });
             } else if (type == 1) {
@@ -479,6 +517,8 @@ public class MainActivity extends AppCompatActivity {
                         Log.e(TAG, "连接成功");
                         mStatus.setText("当前状态：连接成功 正准备获取数据");
                         isStop = false;
+                        String mLocation = "GPS服务定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude +"\n界面定位信息\n经度："+mLatitude+"\n纬度："+mLongitude;
+                        mLocationTxt.setText(mLocation);
                     }
                 });
             } else if (type == 2) {
@@ -489,6 +529,8 @@ public class MainActivity extends AppCompatActivity {
                         Log.e(TAG, "连接失败");
                         mStatus.setText("当前状态：连接失败");
                         isStop = true;
+                        String mLocation = "GPS服务定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude +"\n界面定位信息\n经度："+mLatitude+"\n纬度："+mLongitude;
+                        mLocationTxt.setText(mLocation);
                     }
                 });
             } else if (type == 3) {
@@ -499,6 +541,8 @@ public class MainActivity extends AppCompatActivity {
                         Log.e(TAG, "断开连接");
                         mStatus.setText("当前状态：设备 断开连接");
                         isStop = true;
+                        String mLocation = "GPS服务定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude +"\n界面定位信息\n经度："+mLatitude+"\n纬度："+mLongitude;
+                        mLocationTxt.setText(mLocation);
                     }
                 });
             } else {
@@ -509,6 +553,8 @@ public class MainActivity extends AppCompatActivity {
                         Log.e(TAG, "连接的设备不是我需要的数据");
                         mStatus.setText("当前状态：设备 断开连接 连接的设备不是我需要的数据");
                         isStop = true;
+                        String mLocation = "GPS服务定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude +"\n界面定位信息\n经度："+mLatitude+"\n纬度："+mLongitude;
+                        mLocationTxt.setText(mLocation);
                     }
                 });
             }
@@ -521,6 +567,8 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     Log.e(TAG, "获取数据成功" + info.toString());
                     mResult.setText(info.toString());
+                    String mLocation = "GPS服务定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude +"\n界面定位信息\n经度："+mLatitude+"\n纬度："+mLongitude;
+                    mLocationTxt.setText(mLocation);
                 }
             });
             mInfo = info;
@@ -548,20 +596,20 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private int up_num = 6;
-    private long up_time = 1000*60*3L;
+    private long up_time = 1000 * 60 * 3L;
 
     private void updateServiceInfo() {
         // 保存到数据库
         GroupUserInfo info = TourDatabase.getDefault(mContext).getGroupUserInfoDao().getData(mInfo.getMac());
-        if (info == null){
+        if (info == null) {
             info = new GroupUserInfo();
             info.mac = mInfo.getMac();
             info.time = System.currentTimeMillis();
             info.up_num = 1;
             TourDatabase.getDefault(mContext).getGroupUserInfoDao().insert(info);
         } else {
-            if (info.up_num < up_num){ // 当前用户上传次数 次数在规定之类
-                if ((System.currentTimeMillis() - info.time) < up_time){
+            if (info.up_num < up_num) { // 当前用户上传次数 次数在规定之类
+                if ((System.currentTimeMillis() - info.time) < up_time) {
                     info.up_num += 1;//加一次
                     TourDatabase.getDefault(mContext).getGroupUserInfoDao().insert(info);
                 } else {
@@ -569,7 +617,7 @@ public class MainActivity extends AppCompatActivity {
                     info.up_num = 1;
                     TourDatabase.getDefault(mContext).getGroupUserInfoDao().insert(info);
                 }
-            } else if ((System.currentTimeMillis() - info.time) > up_time){ // 时间在三分钟外
+            } else if ((System.currentTimeMillis() - info.time) > up_time) { // 时间在三分钟外
                 info.time = System.currentTimeMillis();
                 info.up_num = 1;
                 TourDatabase.getDefault(mContext).getGroupUserInfoDao().insert(info);
@@ -580,18 +628,23 @@ public class MainActivity extends AppCompatActivity {
 
         if (mInfo != null) {
 //            if (mLongitude != 0.0f && mLatitude != 0.0f) {
-                UpServiceBean bean = new UpServiceBean();
-                bean.setElectricQuantity(mInfo.getPower());
-                bean.setFrequency(mInfo.getNum());
+            UpServiceBean bean = new UpServiceBean();
+            bean.setElectricQuantity(mInfo.getPower());
+            bean.setFrequency(mInfo.getNum());
+            if (Constants.mLatitude == 0.0 && Constants.mLongitude == 0.0){
                 bean.setLatitude(String.valueOf(mLatitude));
                 bean.setLongitude(String.valueOf(mLongitude));
-                bean.setSerialNumber(mInfo.getMac());
-                bean.setTemperature(mInfo.getTemperature());
-                bean.setStartTime(System.currentTimeMillis());
-                // 将数据转为json
-                String data = FastJsonUtil.objToJson(bean);
-                // 将数据上传到服务器
-                upService(data);
+            } else {
+                bean.setLatitude(String.valueOf(Constants.mLatitude));
+                bean.setLongitude(String.valueOf(Constants.mLongitude));
+            }
+            bean.setSerialNumber(mInfo.getMac());
+            bean.setTemperature(mInfo.getTemperature());
+            bean.setStartTime(System.currentTimeMillis());
+            // 将数据转为json
+            String data = FastJsonUtil.objToJson(bean);
+            // 将数据上传到服务器
+            upService(data);
 //            } else {
 //                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 //                    // TODO: Consider calling
@@ -652,32 +705,34 @@ public class MainActivity extends AppCompatActivity {
 
     String url = "http://119.23.226.237:9099/dataReception";
 
-    private void upService(String data){
+    private void upService(String data) {
         //接口地址
-        RequestBody requestBody = new FormBody.Builder() .add("param",data).build();
-            HttpUtil.sendOkHttpPostRequest(url, requestBody, new Callback() {
-                @Override
-                public void onFailure(Call call, final IOException e) {runOnUiThread(new Runnable() {
+        RequestBody requestBody = new FormBody.Builder().add("param", data).build();
+        HttpUtil.sendOkHttpPostRequest(url, requestBody, new Callback() {
+            @Override
+            public void onFailure(Call call, final IOException e) {
+                runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(mContext,"上传服务器失败",Toast.LENGTH_SHORT).show();
-                        Log.e("ooooooooooooooooooooo","e = "+e.toString());
+                        Toast.makeText(mContext, "上传服务器失败", Toast.LENGTH_SHORT).show();
+                        Log.e("ooooooooooooooooooooo", "e = " + e.toString());
                     }
                 });
-                }
-                @Override
-                public void onResponse(Call call, Response response) throws IOException {
-                    final String result = response.body().string();
-                    Log.e("ooooooooooooooooooooo","data = "+result);
-                    //result就是图片服务器返回的图片地址。
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(mContext,result,Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                }
-            });
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                final String result = response.body().string();
+                Log.e("ooooooooooooooooooooo", "data = " + result);
+                //result就是图片服务器返回的图片地址。
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(mContext, result, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        });
     }
 
     private LocationListener locationListener = new LocationListener() {
@@ -753,9 +808,197 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(getApplicationContext(), "经度：" + location.getLongitude() + "纬度：" + location.getLatitude(), Toast.LENGTH_SHORT).show();
         Log.i("", "经度：" + location.getLongitude());
         Log.i("", "纬度：" + location.getLatitude());
-        if (mIsUpdateService){
+        if (mIsUpdateService) {
             mIsUpdateService = false;
             updateServiceInfo();
         }
+        String mLocation = "GPS服务定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude +"\n界面定位信息\n经度："+mLatitude+"\n纬度："+mLongitude;
+        mLocationTxt.setText(mLocation);
     }
+//    private TextView tv;
+//
+//    LocationManager lm = null;
+//
+//    Location myLocation = null;
+//
+//    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd  HH:mm:ss.SSSZ");
+//
+//    private void initGPSData() {
+//        lm = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+//        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+//            // TODO: Consider calling
+//            //    ActivityCompat#requestPermissions
+//            // here to request the missing permissions, and then overriding
+//            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+//            //                                          int[] grantResults)
+//            // to handle the case where the user grants the permission. See the documentation
+//            // for ActivityCompat#requestPermissions for more details.
+//            return;
+//        }
+//        lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, listener);
+//        lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, listener);
+//    }
+//    LocationListener listener = new LocationListener() {
+//        @Override
+//        public void onLocationChanged(Location location)
+//        {
+//            // 实际上报时间
+//            // String time = sdf.format(new Date(location.getTime()));
+//            // timeText.setText("实际上报时间：" + time);
+//
+//            if (isBetterLocation(location, myLocation))
+//            {
+//                // 获取纬度
+//                double lat = location.getLatitude();
+//                // 获取经度
+//                double lon = location.getLongitude();
+//                // 位置提供者
+//                String provider = location.getProvider();
+//                // 位置的准确性
+//                float accuracy = location.getAccuracy();
+//                // 高度信息
+//                double altitude = location.getAltitude();
+//                // 方向角
+//                float bearing = location.getBearing();
+//                // 速度 米/秒
+//                float speed = location.getSpeed();
+//
+//                String locationTime = sdf.format(new Date(location.getTime()));
+//                String currentTime = null;
+//
+//                if (myLocation != null)
+//                {
+//                    currentTime = sdf.format(new Date(myLocation.getTime()));
+//                    myLocation = location;
+//
+//                }
+//                else
+//                {
+//                    myLocation = location;
+//                }
+//
+//                // 获取当前详细地址
+//                StringBuffer sb = new StringBuffer();
+//                if (myLocation != null)
+//                {
+//                    Geocoder gc = new Geocoder(mContext);
+//                    List<Address> addresses = null;
+//                    try
+//                    {
+//                        addresses = gc.getFromLocation(myLocation.getLatitude(), myLocation.getLongitude(), 1);
+//                    }
+//                    catch (IOException e)
+//                    {
+//                        // TODO Auto-generated catch block
+//                        e.printStackTrace();
+//                    }
+//
+//                    if (addresses != null && addresses.size() > 0)
+//                    {
+//                        Address address = addresses.get(0);
+//                        sb.append(address.getCountryName() + address.getLocality());
+//                        sb.append(address.getSubThoroughfare());
+//
+//                    }
+//                }
+//
+//                tv.setText("经度：" + lon + "\n纬度：" + lat + "\n服务商：" + provider + "\n准确性：" + accuracy + "\n高度：" + altitude + "\n方向角：" + bearing
+//                        + "\n速度：" + speed + "\n上次上报时间：" + currentTime + "\n最新上报时间：" + locationTime + "\n您所在的城市：" + sb.toString());
+//
+//            }
+//
+//        }
+//
+//        @Override
+//        public void onStatusChanged(String provider, int status, Bundle extras)
+//        {
+//            Log.i("tag", "onStatusChanged: " + provider);
+//
+//        }
+//
+//        @Override
+//        public void onProviderEnabled(String provider)
+//        {
+//            Log.i("tag", "onProviderEnabled: " + provider);
+//        }
+//
+//        @Override
+//        public void onProviderDisabled(String provider)
+//        {
+//            Log.i("tag", "onProviderDisabled: " + provider);
+//        }
+//
+//    };
+//
+//    private static final int TWO_MINUTES = 1000 * 1 * 2;
+//
+//    /**
+//     * Determines whether one Location reading is better than the current Location fix
+//     *
+//     * @param location The new Location that you want to evaluate
+//     * @param currentBestLocation The current Location fix, to which you want to compare the new one
+//     */
+//    protected boolean isBetterLocation(Location location, Location currentBestLocation)
+//    {
+//        if (currentBestLocation == null)
+//        {
+//            // A new location is always better than no location
+//            return true;
+//        }
+//
+//        // Check whether the new location fix is newer or older
+//        long timeDelta = location.getTime() - currentBestLocation.getTime();
+//        boolean isSignificantlyNewer = timeDelta > TWO_MINUTES;
+//        boolean isSignificantlyOlder = timeDelta < -TWO_MINUTES;
+//        boolean isNewer = timeDelta > 0;
+//
+//        // If it's been more than two minutes since the current location, use
+//        // the new location
+//        // because the user has likely moved
+//        if (isSignificantlyNewer)
+//        {
+//            return true;
+//            // If the new location is more than two minutes older, it must be
+//            // worse
+//        }
+//        else if (isSignificantlyOlder)
+//        {
+//            return false;
+//        }
+//
+//        // Check whether the new location fix is more or less accurate
+//        int accuracyDelta = (int) (location.getAccuracy() - currentBestLocation.getAccuracy());
+//        boolean isLessAccurate = accuracyDelta > 0;
+//        boolean isMoreAccurate = accuracyDelta < 0;
+//        boolean isSignificantlyLessAccurate = accuracyDelta > 200;
+//
+//        // Check if the old and new location are from the same provider
+//        boolean isFromSameProvider = isSameProvider(location.getProvider(), currentBestLocation.getProvider());
+//
+//        // Determine location quality using a combination of timeliness and
+//        // accuracy
+//        if (isMoreAccurate)
+//        {
+//            return true;
+//        }
+//        else if (isNewer && !isLessAccurate)
+//        {
+//            return true;
+//        }
+//        else if (isNewer && !isSignificantlyLessAccurate && isFromSameProvider)
+//        {
+//            return true;
+//        }
+//        return false;
+//    }
+//
+//    /** Checks whether two providers are the same */
+//    private boolean isSameProvider(String provider1, String provider2)
+//    {
+//        if (provider1 == null)
+//        {
+//            return provider2 == null;
+//        }
+//        return provider1.equals(provider2);
+//    }
 }

@@ -18,6 +18,8 @@ public class GPSServiceListener implements LocationListener {
                 Constants.mLatitude = location.getLatitude();
                 Constants.mLongitude = location.getLongitude();
             }
+            Constants.mLatitude = location.getLatitude();
+            Constants.mLongitude = location.getLongitude();
         }
     }
     @Override

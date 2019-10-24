@@ -71,5 +71,5 @@ public interface GroupUserInfoDao {
      * 删除群中的这个用户
      */
     @Query("DELETE FROM GroupUserInfo WHERE mac = :groupId")
-    void delete(String groupId, String userId);
+    void delete(String groupId);
 }
