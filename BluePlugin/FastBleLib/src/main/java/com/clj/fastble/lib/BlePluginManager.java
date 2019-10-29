@@ -129,12 +129,31 @@ public class BlePluginManager {
 
                 String datas = scancord.substring(0, mData.length());
                 if (mData.equals(datas)){
-                    setOptionsData(scancord);
-                    // 获取成功之后再进行Indicate的执行和读取和发送消息  将在这里开始运行
-                    setWriteData(bleDevice);
+                    // TODO 判断获取的DevID与mac的处理情况
+                    String devId_b4 = scancord.substring(22,24);
+                    String devId_b1 = scancord.substring(24,26);
+                    String mac = bleDevice.getMac();
+                    if (mac.contains(":")){
+                        mac = mac.replace(":","");
+                    }
+                    String mac_b1 = mac.substring(4,6);
+                    String mac_b4 = mac.substring(6,8);
+                    if (devId_b1.equals(mac_b1) && devId_b4.equals(mac_b4)) {
+                        setOptionsData(scancord);
+                        // 获取成功之后再进行Indicate的执行和读取和发送消息  将在这里开始运行
+                        setWriteData(bleDevice);
+                    } else {
+                        // 当前所获取的信息不符合 断开连接
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) { // 18
+                            setCloseConn(bleDevice);
+                            gatt.disconnect();
+                            gatt.close();
+                            mBlueToothListener.connDevice(4, (BleDevice) bleDevice);
+                        }
+                    }
                 } else {
                     // 当前所获取的信息不符合 断开连接
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) { // 18
                         setCloseConn(bleDevice);
                         gatt.disconnect();
                         gatt.close();
