@@ -138,6 +138,9 @@ public class BlePluginManager {
                     }
                     String mac_b1 = mac.substring(4,6);
                     String mac_b4 = mac.substring(6,8);
+                    // ************************
+                    String scanMac = scancord.substring(42,54);
+                    // ************************
                     if (devId_b1.equals(mac_b1) && devId_b4.equals(mac_b4)) {
                         setOptionsData(scancord);
                         // 获取成功之后再进行Indicate的执行和读取和发送消息  将在这里开始运行
