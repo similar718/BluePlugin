@@ -260,6 +260,7 @@ public class MainActivity extends AppCompatActivity {
             }
             locationManager.requestLocationUpdates(mProviderName, 1000, 1, locationListener);
         }
+        startGPSService();
     }
 
     @Override

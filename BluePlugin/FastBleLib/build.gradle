@@ -1,11 +1,11 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion 27
 
     defaultConfig {
-        minSdkVersion 14
-        targetSdkVersion 22
+        minSdkVersion 15
+        targetSdkVersion 27
         versionCode 232
         versionName "2.3.2"
     }
