@@ -2,6 +2,7 @@ package com.example.netservice;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
@@ -106,6 +107,8 @@ public class MainActivity extends AppCompatActivity {
     private double mLatitude = 0.0;
     private double mLongitude = 0.0;
 
+    private boolean mIsActiity = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -114,9 +117,10 @@ public class MainActivity extends AppCompatActivity {
         mGetInfo = findViewById(R.id.btn_get_info);
         mResult = findViewById(R.id.tv_result);
         mStatus = findViewById(R.id.tv_status);
+        mIsActiity = true;
         mLocationTxt = findViewById(R.id.tv_location_txt);
         // 启动GPS定位服务
-        startGPSService();
+        mHandler.sendEmptyMessage(HANDLER_REQUEST_LATLNG);
 
         String mLocation = "GPS服务定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude +"\n界面定位信息\n经度："+mLatitude+"\n纬度："+mLongitude;
         mLocationTxt.setText(mLocation);
@@ -241,6 +245,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onResume() {
         super.onResume();
+        mIsActiity = true;
         if (locationManager != null && !Utils.isEmpty(mProviderName)) {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 // TODO: Consider calling
@@ -363,6 +368,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        mIsActiity = false;
         BlePluginManager.getInstance().destroyBlueToothPlugin();
         stopTimer();
         releaseWakeLock();
@@ -579,6 +585,7 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private final int HANDLER_UPDATE_DATA_TO_SERVICE = 0x0101;
+    private final int HANDLER_REQUEST_LATLNG = 0x0102;
     private BleDeviceInfo mInfo = null;
 
     private Handler mHandler = new Handler() {
@@ -589,6 +596,12 @@ public class MainActivity extends AppCompatActivity {
                 case HANDLER_UPDATE_DATA_TO_SERVICE: // 将数据转成json 并且上传到服务器
                     // 将获取到的数据转化成我们需要的类
                     updateServiceInfo();
+                    break;
+                case HANDLER_REQUEST_LATLNG: // 请求GPS数据
+                    startGPSService();
+                    if (mIsActiity){
+                        mHandler.sendEmptyMessageDelayed(HANDLER_REQUEST_LATLNG,1000);
+                    }
                     break;
                 default:
                     break;

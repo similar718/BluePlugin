@@ -19,7 +19,8 @@ import java.util.List;
 
 public class BlePluginManager {
     public static final String TAG = "BlePluginManager";
-    String mData = "0201060502c0ffe0ff12ff0d00";
+    String mData = "0201060502c0ffe0ff12ff";
+//    String mData = "0201060502c0ffe0ff12ff0d00"; // TODO 后面两位根据设备macID来判断
     // 单例模式
     private BlePluginManager() {
 
@@ -134,6 +135,7 @@ public class BlePluginManager {
                 } else {
                     // 当前所获取的信息不符合 断开连接
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                        setCloseConn(bleDevice);
                         gatt.disconnect();
                         gatt.close();
                         mBlueToothListener.connDevice(4, (BleDevice) bleDevice);
