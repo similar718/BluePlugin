@@ -16,6 +16,15 @@ public class BleDeviceInfo {
     private String mac; // Mac地址
     private String send; // 发射功率
     private String other;
+    private int rssi; // 设备的rssi
+
+    public int getRssi() {
+        return rssi;
+    }
+
+    public void setRssi(int rssi) {
+        this.rssi = rssi;
+    }
 
     public String getBroadcast() {
         return broadcast;
@@ -119,6 +128,7 @@ public class BleDeviceInfo {
                 ", mac='" + mac + '\'' +
                 ", send='" + send + '\'' +
                 ", other='" + other + '\'' +
+                ", rssi=" + rssi +
                 '}';
     }
 }

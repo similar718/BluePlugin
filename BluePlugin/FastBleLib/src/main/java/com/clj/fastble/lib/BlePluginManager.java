@@ -132,17 +132,16 @@ public class BlePluginManager {
                     // TODO 判断获取的DevID与mac的处理情况
                     String devId_b4 = scancord.substring(22,24);
                     String devId_b1 = scancord.substring(24,26);
-                    String mac = bleDevice.getMac();
-                    if (mac.contains(":")){
-                        mac = mac.replace(":","");
-                    }
-                    String mac_b1 = mac.substring(4,6);
-                    String mac_b4 = mac.substring(6,8);
-                    // ************************
                     String scanMac = scancord.substring(42,54);
-                    // ************************
-                    if (devId_b1.equals(mac_b1) && devId_b4.equals(mac_b4)) {
-                        setOptionsData(scancord);
+                    String mac_b1 = scanMac.substring(4,6);
+                    String mac_b4 = scanMac.substring(6,8);
+
+                    if (scanMac.contains("000000000000")) {
+                        setOptionsData(scancord,bleDevice.getRssi());
+                        // 获取成功之后再进行Indicate的执行和读取和发送消息  将在这里开始运行
+                        setWriteData(bleDevice);
+                    } else if (devId_b1.equals(mac_b1) && devId_b4.equals(mac_b4)){
+                        setOptionsData(scancord,bleDevice.getRssi());
                         // 获取成功之后再进行Indicate的执行和读取和发送消息  将在这里开始运行
                         setWriteData(bleDevice);
                     } else {
@@ -200,7 +199,7 @@ public class BlePluginManager {
 
                         String datas = scancord.substring(0, mData.length());
                         if (mData.equals(datas)){
-                            setOptionsData(scancord);
+                            setOptionsData(scancord,bleDevice.getRssi());
                             // 获取成功之后再进行Indicate的执行和读取和发送消息  将在这里开始运行
                             setWriteData(bleDevice);
                         }
@@ -219,7 +218,7 @@ public class BlePluginManager {
         }
     }
 
-    private void setOptionsData(String data){
+    private void setOptionsData(String data,int rssi){
         BleDeviceInfo info = new BleDeviceInfo();
         info.setBroadcast(data.substring(0,6));
         info.setUuid(data.substring(6,18));
@@ -278,9 +277,10 @@ public class BlePluginManager {
         String mac2 = data.substring(50,52);
         String mac1 = data.substring(52,54);
         String mac = mac1+mac2+mac3+mac4+mac5+mac6;
-        info.setMac(mac);
+        info.setMac(data.substring(42,54));
         info.setSend(data.substring(54,56));
         info.setOther(data.substring(56,data.length()));
+        info.setRssi(rssi);
         mBlueToothListener.getDeviceInfo(info);
     }
 

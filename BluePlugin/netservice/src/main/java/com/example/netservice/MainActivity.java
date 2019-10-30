@@ -35,6 +35,7 @@ import com.clj.fastble.data.BleDevice;
 import com.clj.fastble.lib.BleDeviceInfo;
 import com.clj.fastble.lib.BlePluginManager;
 import com.clj.fastble.lib.BlueToothPluginListener;
+import com.clj.fastble.lib.RssiUtils;
 import com.example.netservice.bean.UpServiceBean;
 import com.example.netservice.config.Constants;
 import com.example.netservice.http.HttpUtil;
@@ -94,6 +95,7 @@ public class MainActivity extends AppCompatActivity {
     private Button mGetInfo;
     private TextView mResult;
     private TextView mStatus;
+    private TextView tv_Rssi;
     private TextView mLocationTxt;
     private static final int REQUEST_CODE_OPEN_GPS = 1;
     private static final int REQUEST_CODE_PERMISSION_LOCATION = 2;
@@ -117,6 +119,7 @@ public class MainActivity extends AppCompatActivity {
         mGetInfo = findViewById(R.id.btn_get_info);
         mResult = findViewById(R.id.tv_result);
         mStatus = findViewById(R.id.tv_status);
+        tv_Rssi = findViewById(R.id.tv_Rssi);
         mIsActiity = true;
         mLocationTxt = findViewById(R.id.tv_location_txt);
         // 启动GPS定位服务
@@ -576,6 +579,7 @@ public class MainActivity extends AppCompatActivity {
                     mResult.setText(info.toString());
                     String mLocation = "GPS服务定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude +"\n界面定位信息\n经度："+mLatitude+"\n纬度："+mLongitude;
                     mLocationTxt.setText(mLocation);
+                    tv_Rssi.setText("distance 仅供参考 = " + RssiUtils.getLeDistance(info.getRssi()) + " Rssi = " + info.getRssi());
                 }
             });
             mInfo = info;

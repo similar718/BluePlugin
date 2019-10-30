@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -11,37 +12,52 @@
         android:layout_height="wrap_content"
         android:text="获取设备信息"
         />
+
+    <EditText
+        android:id="@+id/et_rssi"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:hint="设置rssi区间,英文逗号隔开"
+        android:textSize="12sp"
+        android:layout_alignParentRight="true"
+        android:visibility="gone"
+        />
+
     <TextView
         android:id="@+id/tv_status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="当前状态："
-        app:layout_constraintTop_toTopOf="parent"
         android:layout_marginTop="70dp"
-        app:layout_constraintLeft_toLeftOf="parent"
-        android:layout_marginLeft="20dp"
+        android:layout_marginLeft="10dp"
         />
     <TextView
         android:id="@+id/tv_result"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_marginTop="20dp"
+        android:layout_marginLeft="10dp"
+        android:layout_below="@+id/tv_status"/>
+
+    <TextView
+        android:id="@+id/tv_Rssi"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="RSSI: "
+        android:layout_marginTop="20dp"
+        android:layout_marginLeft="10dp"
+        android:layout_below="@+id/tv_result" />
 
     <TextView
         android:id="@+id/tv_location_txt"
-        android:layout_width="170dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:maxWidth="300dp"
         android:layout_marginBottom="10dp"
         android:layout_marginLeft="10dp"
         android:textColor="@color/colorAccent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_alignParentBottom="true"
         android:text="GPS服务定位信息\n经度：22.5846798656784\n纬度：113.654316841654\n界面定位信息\n经度：22.34681684 \n纬度：113.35416461584"
         />
-
-</android.support.constraint.ConstraintLayout>
+</RelativeLayout>
