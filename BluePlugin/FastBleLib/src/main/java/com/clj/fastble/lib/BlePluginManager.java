@@ -43,6 +43,25 @@ public class BlePluginManager {
                 .setOperateTimeout(5000);
     }
 
+    private long mMinRssi = -100;
+    private long mMaxRssi = 0;
+
+    public void setMinRssi(long minRssi){
+        mMinRssi = minRssi;
+    }
+
+    public void setMaxRssi(long maxRssi){
+        mMaxRssi = maxRssi;
+    }
+
+    public long getMinRssi(){
+        return mMinRssi;
+    }
+
+    public long getMaxRssi(){
+        return mMaxRssi;
+    }
+
     private BlueToothPluginListener mBlueToothListener;
 
     public void getDeviceInfo(BlueToothPluginListener listener){
@@ -126,6 +145,16 @@ public class BlePluginManager {
                  *      发射功率 c5 数据固定 1bytes
                  */
                 // 02 01 06 05 02 c0 ff e0 ff 12 ff 0d 00 61 03 36 00 02 00 00 00 15 12 29 f8 e6 a0 c5 08 09 42 4c 45 5f 4b 45 59 05 12 0a 00 14 00 02 0a 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+                if (bleDevice.getRssi() > getMaxRssi() && bleDevice.getRssi() < getMinRssi()){
+                    // 当前所获取的信息不符合 断开连接
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) { // 18
+                        setCloseConn(bleDevice);
+                        gatt.disconnect();
+                        gatt.close();
+                        mBlueToothListener.connDevice(4, (BleDevice) bleDevice);
+                    }
+                    return;
+                }
 
                 String datas = scancord.substring(0, mData.length());
                 if (mData.equals(datas)){

@@ -25,9 +25,11 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -96,6 +98,9 @@ public class MainActivity extends AppCompatActivity {
     private TextView mResult;
     private TextView mStatus;
     private TextView tv_Rssi;
+    private TextView tv_Rssi_range;
+    private EditText et_Rssi;
+    private Button tv_rssi_setting;
     private TextView mLocationTxt;
     private static final int REQUEST_CODE_OPEN_GPS = 1;
     private static final int REQUEST_CODE_PERMISSION_LOCATION = 2;
@@ -120,6 +125,9 @@ public class MainActivity extends AppCompatActivity {
         mResult = findViewById(R.id.tv_result);
         mStatus = findViewById(R.id.tv_status);
         tv_Rssi = findViewById(R.id.tv_Rssi);
+        tv_Rssi_range = findViewById(R.id.tv_rssi_result);
+        tv_rssi_setting = findViewById(R.id.btn_rssi_setting);
+        et_Rssi = findViewById(R.id.et_rssi);
         mIsActiity = true;
         mLocationTxt = findViewById(R.id.tv_location_txt);
         // 启动GPS定位服务
@@ -164,6 +172,36 @@ public class MainActivity extends AppCompatActivity {
 
         // 为获取地理位置信息时设置查询条件
         String provider = locationManager.getBestProvider(criteria, true); // 获取GPS信息
+
+        tv_rssi_setting.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String data = et_Rssi.getText().toString().trim();
+                if (TextUtils.isEmpty(data)){
+                    Toast.makeText(mContext,"RSSI范围不能为空",Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (!data.contains(".")){
+                    Toast.makeText(mContext,"RSSI格式错误，用英文点隔开",Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                String data1 = data.substring(0,data.indexOf("."));
+                String data2 = data.substring(data.indexOf(".")+1,data.length());
+                if (TextUtils.isEmpty(data1) || TextUtils.isEmpty(data2)){
+                    Toast.makeText(mContext,"RSSI输入错误，请输入正确的RSSI格式范围",Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                long rssi1 = Long.parseLong(data1) * (-1);
+                long rssi2 = Long.parseLong(data2) * (-1);
+                if (rssi1 == rssi2){
+                    Toast.makeText(mContext,"请输入正确的范围区间",Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                BlePluginManager.getInstance().setMaxRssi(rssi1 > rssi2 ? rssi1 : rssi2);
+                BlePluginManager.getInstance().setMinRssi(rssi1 < rssi2 ? rssi1 : rssi2);
+                tv_Rssi_range.setText("当前rssi的范围："+BlePluginManager.getInstance().getMinRssi()+" —— "+BlePluginManager.getInstance().getMaxRssi());
+            }
+        });
     }
 
     PowerManager.WakeLock wakeLock = null;
