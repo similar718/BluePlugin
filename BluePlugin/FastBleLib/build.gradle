@@ -21,7 +21,8 @@ android {
         //删除存在的
         delete 'build/libs/fast.jar'
         //设置拷贝的文件
-        from('build/intermediates/bundles/release/')
+//        from('build/intermediates/bundles/release/') // 地址更改
+        from('build/intermediates/packaged-classes/release/')
         //打进jar包后的文件目录
         into('build/libs/')
         //将classes.jar放入build/libs/目录下
@@ -36,4 +37,5 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.android.support:appcompat-v7:27.0.0'
 }

@@ -33,7 +33,7 @@
         android:id="@+id/tv_rssi_result"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="当前rssi的范围：-100 —— 0"
+        android:text="当前rssi的范围最小：-75"
         android:layout_below="@+id/et_rssi"
         android:layout_alignLeft="@+id/et_rssi"
         android:layout_alignRight="@+id/et_rssi"
@@ -86,6 +86,6 @@
         android:layout_marginLeft="10dp"
         android:textColor="@color/colorAccent"
         android:layout_alignParentBottom="true"
-        android:text="GPS服务定位信息\n经度：22.5846798656784\n纬度：113.654316841654\n界面定位信息\n经度：22.34681684 \n纬度：113.35416461584"
+        android:text="蓝牙插件定位信息\n经度：22.5846798656784\n纬度：113.654316841654"
         />
 </RelativeLayout>

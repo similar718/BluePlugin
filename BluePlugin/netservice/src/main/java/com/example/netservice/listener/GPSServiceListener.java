@@ -14,12 +14,12 @@ public class GPSServiceListener implements LocationListener {
     @Override
     public void onLocationChanged(Location location) {
         if(location != null) {
-            if (location.hasAccuracy() && location.getAccuracy() <= minAccuracyMeters) {
-                Constants.mLatitude = location.getLatitude();
-                Constants.mLongitude = location.getLongitude();
-            }
-            Constants.mLatitude = location.getLatitude();
-            Constants.mLongitude = location.getLongitude();
+//            if (location.hasAccuracy() && location.getAccuracy() <= minAccuracyMeters) {
+//                Constants.mLatitude = location.getLatitude();
+//                Constants.mLongitude = location.getLongitude();
+//            }
+//            Constants.mLatitude = location.getLatitude();
+//            Constants.mLongitude = location.getLongitude();
         }
     }
     @Override
