@@ -1,4 +1,4 @@
-package com.clj.fastble.lib;
+package com.clj.fastble.libs;
 
 /**
  * Created by Administrator on 2019/9/22.

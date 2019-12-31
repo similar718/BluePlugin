@@ -1,8 +1,20 @@
-package com.clj.fastble.lib;
+package com.clj.fastble.libs;
 
+import android.Manifest;
+import android.app.Activity;
 import android.app.Application;
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothGatt;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.location.LocationProvider;
 import android.os.Build;
+import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
 import com.clj.fastble.BleManager;
@@ -12,14 +24,15 @@ import com.clj.fastble.callback.BleScanCallback;
 import com.clj.fastble.callback.BleWriteCallback;
 import com.clj.fastble.data.BleDevice;
 import com.clj.fastble.exception.BleException;
+import com.clj.fastble.libs.config.Constants;
 import com.clj.fastble.scan.BleScanRuleConfig;
 import com.clj.fastble.utils.HexUtil;
 
 import java.util.List;
 
 public class BlePluginManager {
-    public static final String TAG = "BlePluginManager";
     String mData = "0201060502c0ffe0ff12ff";
+
     // 单例模式
     private BlePluginManager() {
 
@@ -33,32 +46,97 @@ public class BlePluginManager {
         private static BlePluginManager instance = new BlePluginManager();
     }
 
-    public void initBlueToothPlugin(Application context){
+    private LocationManager locationManager = null;
+    String mProviderName = "";
+    private Context mContext = null;
+
+    public void initBlueToothPlugin(Application context, Activity activity, BlueToothPluginListener listener) {
+        // 蓝牙插件的监听事件
+        mBlueToothListener = listener;
+        mContext = context;
+        if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            mBlueToothListener.initFailed((byte) 0x0001); // 位置权限未打开
+            return;
+        }
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (!bluetoothAdapter.isEnabled()) { // 蓝牙未打开
+            mBlueToothListener.initFailed((byte) 0x0010);
+            return;
+        }
+        // 初始化控件
         BleManager.getInstance().init(context);
+        // 设置扫描设备配置
         BleManager.getInstance()
                 .enableLog(true)
                 .setReConnectCount(1, 5000)
                 .setConnectOverTime(20000)
                 .setOperateTimeout(5000);
-        setMinRssi(0);
+        // 设置默认RSSI值
+        setMinRssi(Constants.mMinRssi);
+        // 定位信息相关信息
+        setLocationInfo(context);
+        mBlueToothListener.initSuccess();
     }
 
-    private long mMinRssi = -75;// 设置最低的数据
+    private void setLocationInfo(Application activity) {
+        String serviceName = Context.LOCATION_SERVICE;
+        locationManager = (LocationManager) activity.getSystemService(serviceName);
+        // 查找到服务信息
+        Criteria criteria = new Criteria();
+        // 设置定位精确度 Criteria.ACCURACY_COARSE比较粗略，Criteria.ACCURACY_FINE则比较精细
+        criteria.setAccuracy(Criteria.ACCURACY_FINE);
+        // 设置是否要求速度
+        criteria.setSpeedRequired(false);
+        // 设置是否需要海拔信息
+        criteria.setAltitudeRequired(false);
+        // 设置是否需要方位信息
+        criteria.setBearingRequired(false);
+        // 设置是否允许运营商收费
+        criteria.setCostAllowed(true);
+        // 设置对电源的需求
+        criteria.setPowerRequirement(Criteria.POWER_LOW); // 低功耗
+
+        // 为获取地理位置信息时设置查询条件
+        String provider = locationManager.getBestProvider(criteria, true); // 获取GPS信息
+
+        Location lastKnownLocation = null;
+        if (ActivityCompat.checkSelfPermission(activity,
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(activity,
+                        Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        mProviderName = LocationManager.GPS_PROVIDER;
+        if (lastKnownLocation == null) {
+            lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            mProviderName = LocationManager.NETWORK_PROVIDER;
+        }
+        if (mProviderName != null && !"".equals(mProviderName)) {
+            locationManager.requestLocationUpdates(mProviderName, 1000, 1, locationListener);
+        }
+    }
 
     public void setMinRssi(long minRssi){
-        mMinRssi = minRssi;
+        Constants.mMinRssi = minRssi;
     }
 
     public long getMinRssi(){
-        return mMinRssi;
+        return Constants.mMinRssi;
     }
 
     private BlueToothPluginListener mBlueToothListener;
 
-    public void getDeviceInfo(BlueToothPluginListener listener){
-        mBlueToothListener = listener;
+    public void getDeviceInfo(){
         setScanRule();
         startScan();
+    }
+
+    public void onPauseBlueToothPlugin(){
+        if (locationManager != null) {
+            locationManager.removeUpdates(locationListener);
+        }
     }
 
     private void setScanRule() {
@@ -86,10 +164,14 @@ public class BlePluginManager {
             public void onScanning(BleDevice bleDevice) {
                 if ("BLE_KEY".equals(bleDevice.getName())){
                     if (!BleManager.getInstance().isConnected(bleDevice)) {
-                        mIsScanDes = true;
-                        mBlueToothListener.scanDevice(1);
-                        BleManager.getInstance().cancelScan();
-                        connect(bleDevice);
+                        if (bleDevice.getRssi() >= getMinRssi()){ // 在规定的rssi范围内进行连接
+                            mIsScanDes = true;
+                            mBlueToothListener.scanDevice();
+                            BleManager.getInstance().cancelScan();
+                            connect(bleDevice);
+                        } else { // 未在rssi的范围内不进行操作
+                            mBlueToothListener.scanDeviceMinRSSI();
+                        }
                     }
                 }
             }
@@ -97,7 +179,7 @@ public class BlePluginManager {
             @Override
             public void onScanFinished(List<BleDevice> scanResultList) {
                 if (!mIsScanDes){
-                    mBlueToothListener.scanDevice(0);
+                    mBlueToothListener.scanNotDevice();
                 } else {
                     mIsScanDes = false;
                 }
@@ -109,17 +191,17 @@ public class BlePluginManager {
         BleManager.getInstance().connect(bleDevice, new BleGattCallback() {
             @Override
             public void onStartConnect() {
-                mBlueToothListener.connDevice(0, (BleDevice) bleDevice);
+                mBlueToothListener.startConnDevice((BleDevice) bleDevice);
             }
 
             @Override
             public void onConnectFail(BleDevice bleDevice, BleException exception) {
-                mBlueToothListener.connDevice(2, (BleDevice) bleDevice);
+                mBlueToothListener.connFailedDevice((BleDevice) bleDevice);
             }
 
             @Override
             public void onConnectSuccess(BleDevice bleDevice, BluetoothGatt gatt, int status) {
-                mBlueToothListener.connDevice(1, (BleDevice) bleDevice);
+                mBlueToothListener.connSuccesDevice((BleDevice) bleDevice);
                 String scancord =  HexUtil.formatHexString(bleDevice.getScanRecord());
                 // 成功获取到数据进行判断当前数据的是否是我要的格式
                 // 广播指示 02 01 06  数据固定 2 bytes
@@ -142,7 +224,7 @@ public class BlePluginManager {
                         setCloseConn(bleDevice);
                         gatt.disconnect();
                         gatt.close();
-                        mBlueToothListener.connDevice(4, (BleDevice) bleDevice);
+                        mBlueToothListener.connNotDesDevice((BleDevice) bleDevice);
                     }
                     return;
                 }
@@ -170,7 +252,7 @@ public class BlePluginManager {
                             setCloseConn(bleDevice);
                             gatt.disconnect();
                             gatt.close();
-                            mBlueToothListener.connDevice(4, (BleDevice) bleDevice);
+                            mBlueToothListener.connNotDesDevice((BleDevice) bleDevice);
                         }
                     }
                 } else {
@@ -179,13 +261,13 @@ public class BlePluginManager {
                         setCloseConn(bleDevice);
                         gatt.disconnect();
                         gatt.close();
-                        mBlueToothListener.connDevice(4, (BleDevice) bleDevice);
+                        mBlueToothListener.connNotDesDevice((BleDevice) bleDevice);
                     }
                 }
             }
             @Override
             public void onDisConnected(boolean isActiveDisConnected, BleDevice bleDevice, BluetoothGatt gatt, int status) {
-                mBlueToothListener.connDevice(3, (BleDevice) bleDevice);
+                mBlueToothListener.disConnDevice((BleDevice) bleDevice);
             }
         });
     }
@@ -252,6 +334,10 @@ public class BlePluginManager {
             String end = powerstr.substring(2,4);
             String datainfo = Integer.parseInt(end)+"."+start+"V";
             info.setPower(datainfo);
+            double power = Double.parseDouble(Integer.parseInt(end)+"."+start);
+            if (power < Constants.mWarningPower){
+                mBlueToothListener.warningPower();
+            }
         }
         // 芯片温度
         String Tempstr = data.substring(30,34);
@@ -269,26 +355,12 @@ public class BlePluginManager {
         String numstr1 = data.substring(40,42);
         // 小端格式
         String num = numstr1+numstr2+numstr3+numstr4;// 转换
-        info.setNum(String.valueOf(Integer.parseInt(num,16)));
-//        if (!"".equals(numstr) && null != numstr){
-//            int da = Integer.parseInt(numstr);
-//            if (da == 0){
-//                info.setNum(0+"");
-//            } else {
-//                for (int i = 0;i<numstr.length();i++){
-//                    int das = Integer.parseInt(numstr.substring(i,i+1));
-//                    if (das == 0 && i != 0){
-//                        int num = 0;
-//                        int pos = 0;
-//                        for (int j = (i-1); j>0;j--){
-//                            int d = Integer.parseInt(numstr.substring(j,j+1));
-//                            num = num + d * 16^pos;
-//                        }
-//                        info.setNum(num+"");
-//                    }
-//                }
-//            }
-//        }
+        int tapnum = Integer.parseInt(num,16);
+        info.setNum(String.valueOf(tapnum));
+        if (tapnum > Constants.mTapNum){
+            mBlueToothListener.warningTapNum();
+        }
+
         // mac 地址
         String mac6 = data.substring(42,44);
         String mac5 = data.substring(44,46);
@@ -317,11 +389,13 @@ public class BlePluginManager {
                     @Override
                     public void onWriteSuccess(int current, int total, byte[] justWrite) {
                         // 发送数据到设备成功（分包发送的情况下，可以通过方法中返回的参数可以查看发送进度）
+                        mBlueToothListener.replyDataToDeviceSuccess();
                     }
 
                     @Override
                     public void onWriteFailure(BleException exception) {
                         // 发送数据到设备失败
+                        mBlueToothListener.replyDataToDeviceFailed();
                     }
                 });
     }
@@ -330,4 +404,55 @@ public class BlePluginManager {
         BleManager.getInstance().disconnectAllDevice();
         BleManager.getInstance().destroy();
     }
+
+    private LocationListener locationListener = new LocationListener() {
+        /**
+         * 位置信息变化时触发
+         */
+        public void onLocationChanged(Location location) {
+            Constants.mLatitude = location.getLatitude();
+            Constants.mLongitude = location.getLongitude();
+        }
+
+        /**
+         * GPS状态变化时触发
+         */
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+            switch (status) {
+                // GPS状态为可见时
+                case LocationProvider.AVAILABLE:
+                    // 当前GPS状态为可见状态
+                    break;
+                // GPS状态为服务区外时
+                case LocationProvider.OUT_OF_SERVICE:
+                    // 当前GPS状态为服务区外状态
+                    break;
+                // GPS状态为暂停服务时
+                case LocationProvider.TEMPORARILY_UNAVAILABLE:
+                    // 当前GPS状态为暂停服务状态
+                    break;
+            }
+        }
+
+        /**
+         * GPS开启时触发
+         */
+        public void onProviderEnabled(String provider) {
+            if (
+                    ActivityCompat.checkSelfPermission(mContext,
+                            Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                            ActivityCompat.checkSelfPermission(mContext,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
+            Location location = locationManager.getLastKnownLocation(provider);
+            Constants.mLatitude = location.getLatitude();
+            Constants.mLongitude = location.getLongitude();
+        }
+        /**
+         * GPS禁用时触发
+         */
+        public void onProviderDisabled(String provider) {
+        }
+    };
 }

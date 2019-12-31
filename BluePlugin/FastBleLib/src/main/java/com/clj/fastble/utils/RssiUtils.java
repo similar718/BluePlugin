@@ -1,4 +1,4 @@
-package com.clj.fastble.lib;
+package com.clj.fastble.utils;
 
 /**
  * A和n的值，需要根据实际环境进行检测得出
