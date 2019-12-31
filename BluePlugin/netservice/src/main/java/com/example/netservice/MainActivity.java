@@ -1,28 +1,21 @@
 package com.example.netservice;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.location.Criteria;
-import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
-import android.location.LocationProvider;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
-import android.os.PowerManager;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -31,10 +24,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.clj.fastble.data.BleDevice;
-import com.clj.fastble.libs.lib.BleDeviceInfo;
-import com.clj.fastble.libs.lib.BlePluginManager;
-import com.clj.fastble.libs.lib.BlueToothPluginListener;
-import com.clj.fastble.libs.lib.config.Constants;
+import com.clj.fastble.libs.BleDeviceInfo;
+import com.clj.fastble.libs.BlePluginManager;
+import com.clj.fastble.libs.BlueToothPluginListener;
+import com.clj.fastble.libs.config.Constants;
 import com.example.netservice.bean.UpServiceBean;
 import com.example.netservice.http.HttpUtil;
 import com.example.netservice.roomdb.TourDatabase;
@@ -44,8 +37,6 @@ import com.example.netservice.utils.FastJsonUtil;
 import com.example.netservice.utils.GPSUtils;
 import com.example.netservice.utils.NetWorkUtils;
 import com.example.netservice.utils.RssiUtils;
-import com.example.netservice.utils.Utils;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -93,13 +84,6 @@ public class MainActivity extends AppCompatActivity {
 
     private Context mContext;
 
-    // 获取位置管理服务
-//    private LocationManager locationManager;
-//    String mProviderName = "";
-
-//    private double mLatitude = 0.0;
-//    private double mLongitude = 0.0;
-
     private boolean mIsActiity = false;
 
     @Override
@@ -138,27 +122,6 @@ public class MainActivity extends AppCompatActivity {
         });
         initBlueTooth();
 
-//        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-//        String serviceName = Context.LOCATION_SERVICE;
-//        locationManager = (LocationManager) this.getSystemService(serviceName);
-//        // 查找到服务信息
-//        Criteria criteria = new Criteria();
-//        // 设置定位精确度 Criteria.ACCURACY_COARSE比较粗略，Criteria.ACCURACY_FINE则比较精细
-//        criteria.setAccuracy(Criteria.ACCURACY_FINE);
-//        // 设置是否要求速度
-//        criteria.setSpeedRequired(false);
-//        // 设置是否需要海拔信息
-//        criteria.setAltitudeRequired(false);
-//        // 设置是否需要方位信息
-//        criteria.setBearingRequired(false);
-//        // 设置是否允许运营商收费
-//        criteria.setCostAllowed(true);
-//        // 设置对电源的需求
-//        criteria.setPowerRequirement(Criteria.POWER_LOW); // 低功耗
-//
-//        // 为获取地理位置信息时设置查询条件
-//        String provider = locationManager.getBestProvider(criteria, true); // 获取GPS信息
-
         tv_rssi_setting.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -170,79 +133,12 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-//    PowerManager.WakeLock wakeLock = null;
-
-    //获取电源锁，保持该服务在屏幕熄灭时仍然获取CPU时，保持运行，当TimerTask开始运行时加入如下方法
-//    @SuppressLint("InvalidWakeLockTag")
-//    private void acquireWakeLock() {
-//        if (null == wakeLock) {
-//            PowerManager pm = (PowerManager) this.getSystemService(Context.POWER_SERVICE);
-//            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ON_AFTER_RELEASE, "PostLocationService");
-//            if (null != wakeLock) {
-//                wakeLock.acquire();
-//            }
-//        }
-//        /**
-//         *  上面第一个方法是获取锁，第二个方法是释放锁，一旦获取锁后，及时屏幕在熄灭或锁屏长时间后，系统后台一直可以保持获取到锁的应用程序运行。获取到PowerManager的实例pm后，再通过newWakeLock方法获取wakelock的实例，其中第一个参数是指定要获取哪种类型的锁，不同的锁对系统CPU、屏幕和键盘有不同的影响，第二个参数是自定义名称。
-//         *
-//         *     各种锁的类型对CPU 、屏幕、键盘的影响：
-//         *
-//         *     PARTIAL_WAKE_LOCK:保持CPU 运转，屏幕和键盘灯有可能是关闭的。
-//         *
-//         *     SCREEN_DIM_WAKE_LOCK：保持CPU 运转，允许保持屏幕显示但有可能是灰的，允许关闭键盘灯
-//         *
-//         *     SCREEN_BRIGHT_WAKE_LOCK：保持CPU 运转，允许保持屏幕高亮显示，允许关闭键盘灯
-//         *
-//         *     FULL_WAKE_LOCK：保持CPU 运转，保持屏幕高亮显示，键盘灯也保持亮度
-//         *
-//         *     ACQUIRE_CAUSES_WAKEUP：强制使屏幕亮起，这种锁主要针对一些必须通知用户的操作.
-//         *
-//         *     ON_AFTER_RELEASE：当锁被释放时，保持屏幕亮起一段时间
-//         */
-//    }
-
-//    //释放设备电源锁
-//    private void releaseWakeLock() {
-//        if (null != wakeLock) {
-//            wakeLock.release();
-//            wakeLock = null;
-//        }
-//    }
-
+    private boolean mInitSuccess = false; // 是否默认蓝牙插件初始化成功
+    private boolean mClickInit = false; // 是否默认点击扫描初始化
 
     @Override
     public void onStart() {
         super.onStart();
-//        if (getIntent() == null || getIntent().getStringExtra("city") == null || "".equals(getIntent().getStringExtra("city"))) {
-//            if (openGPSSettings()) {
-//                Location lastKnownLocation = null;
-//                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-//                    // TODO: Consider calling
-//                    //    ActivityCompat#requestPermissions
-//                    // here to request the missing permissions, and then overriding
-//                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-//                    //                                          int[] grantResults)
-//                    // to handle the case where the user grants the permission. See the documentation
-//                    // for ActivityCompat#requestPermissions for more details.
-//                    runOnUiThread(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            Toast.makeText(mContext, "位置权限未打开", Toast.LENGTH_LONG).show();
-//                        }
-//                    });
-//                    return;
-//                }
-//                lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-//                mProviderName = LocationManager.GPS_PROVIDER;
-//                if (lastKnownLocation == null) {
-//                    lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-//                    mProviderName = LocationManager.NETWORK_PROVIDER;
-//                }
-//                if (mProviderName != null && !"".equals(mProviderName)) {
-//                    locationManager.requestLocationUpdates(mProviderName, 1000, 1, locationListener);
-//                }
-//            }
-//        }
     }
 
     /**
@@ -253,52 +149,14 @@ public class MainActivity extends AppCompatActivity {
     public void onResume() {
         super.onResume();
         mIsActiity = true;
-//        if (locationManager != null && !Utils.isEmpty(mProviderName)) {
-//            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-//                // TODO: Consider calling
-//                //    ActivityCompat#requestPermissions
-//                // here to request the missing permissions, and then overriding
-//                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-//                //                                          int[] grantResults)
-//                // to handle the case where the user grants the permission. See the documentation
-//                // for ActivityCompat#requestPermissions for more details.
-//                runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        Toast.makeText(mContext, "位置权限未打开", Toast.LENGTH_LONG).show();
-//                    }
-//                });
-//                return;
-//            }
-//            locationManager.requestLocationUpdates(mProviderName, 1000, 1, locationListener);
-//        }
-//        startGPSService();
     }
 
     @Override
     public void onPause() {
         super.onPause();
         // 取消注册监听
-//        if (locationManager != null) {
-//            locationManager.removeUpdates(locationListener);
-//        }
         BlePluginManager.getInstance().onPauseBlueToothPlugin();
     }
-
-//    /** GPS模块是否存在或者是开启 **/
-//    private boolean openGPSSettings() {
-//        LocationManager alm = (LocationManager) this
-//                .getSystemService(Context.LOCATION_SERVICE);
-//        if (alm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER)) {
-//            Toast.makeText(this, "GPS模块正常", Toast.LENGTH_SHORT).show();
-//            return true;
-//        }
-//
-//        Toast.makeText(this, "请开启GPS！", Toast.LENGTH_SHORT).show();
-//        Intent intent = new Intent(Settings.ACTION_SECURITY_SETTINGS);
-//        startActivityForResult(intent, 0); // 此为设置完成后返回到获取界面
-//        return false;
-//    }
 
     private Timer mTimer = null;
     private TimerTask mTimerTask = null;
@@ -343,7 +201,6 @@ public class MainActivity extends AppCompatActivity {
         }
         if (mTimer != null && mTimerTask != null) {
             mTimer.schedule(mTimerTask, delay, period);
-//            acquireWakeLock();
         }
     }
 
@@ -378,7 +235,6 @@ public class MainActivity extends AppCompatActivity {
         mIsActiity = false;
         BlePluginManager.getInstance().destroyBlueToothPlugin();
         stopTimer();
-//        releaseWakeLock();
         setStopGPSService();
     }
 
@@ -433,25 +289,22 @@ public class MainActivity extends AppCompatActivity {
                             .setCancelable(false)
                             .show();
                 } else {
-                    mStatus.setText("当前状态：正在搜索设备");
-                    isStop = false;
-                    startThread();
+                    if (mInitSuccess) {
+                        mStatus.setText("当前状态：正在搜索设备");
+                        isStop = false;
+                        startThread();
 //                    startGPSService();
-                    startTimer();
-                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
-                    mLocationTxt.setText(mLocation);
+                        startTimer();
+                        String mLocation = "蓝牙插件定位信息\n经度：" + Constants.mLatitude + "\n纬度：" + Constants.mLongitude;
+                        mLocationTxt.setText(mLocation);
+                    } else {
+                        mClickInit = true;
+                        initBlueTooth();
+                    }
                 }
                 break;
         }
     }
-
-//    private void startGPSService() {
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//            this.getApplicationContext().startService(new Intent(this, GPSService.class));
-//        } else {
-//            this.getApplicationContext().startService(new Intent(this, GPSService.class));
-//        }
-//    }
 
     private void setStopGPSService() {
         this.getApplicationContext().stopService(new Intent(this, GPSService.class));
@@ -472,7 +325,6 @@ public class MainActivity extends AppCompatActivity {
                 mStatus.setText("当前状态：正在搜索设备");
                 isStop = false;
                 startThread();
-//                startGPSService();
                 startTimer();
                 String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
                 mLocationTxt.setText(mLocation);
@@ -490,11 +342,22 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 Toast.makeText(mContext,"初始化失败，其他情况",Toast.LENGTH_LONG).show();
             }
+            mInitSuccess = false;
         }
 
         @Override
         public void initSuccess() {
             // 初始化成功 可以正常的扫描设备
+            mInitSuccess = true;
+            if (mClickInit){
+                mClickInit = false;
+                mStatus.setText("当前状态：正在搜索设备");
+                isStop = false;
+                startThread();
+                startTimer();
+                String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                mLocationTxt.setText(mLocation);
+            }
         }
 
         @Override
@@ -682,7 +545,6 @@ public class MainActivity extends AppCompatActivity {
                     updateServiceInfo();
                     break;
                 case HANDLER_REQUEST_LATLNG: // 请求GPS数据
-//                    startGPSService();
                     if (mIsActiity){
                         mHandler.sendEmptyMessageDelayed(HANDLER_REQUEST_LATLNG,1000);
                     }
@@ -745,8 +607,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-//    private boolean mIsUpdateService = false;
-
     String url = "http://119.23.226.237:9099/dataReception";
 
     private void upService(String data) {
@@ -778,85 +638,4 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-
-//    private LocationListener locationListener = new LocationListener() {
-//
-//        /**
-//         * 位置信息变化时触发
-//         */
-//        public void onLocationChanged(Location location) {
-//
-//            updateToNewLocation(location);
-//        }
-//
-//        /**
-//         * GPS状态变化时触发
-//         */
-//        public void onStatusChanged(String provider, int status, Bundle extras) {
-//            switch (status) {
-//                // GPS状态为可见时
-//                case LocationProvider.AVAILABLE:
-//                    // 当前GPS状态为可见状态
-//                    break;
-//                // GPS状态为服务区外时
-//                case LocationProvider.OUT_OF_SERVICE:
-//                    // 当前GPS状态为服务区外状态
-//                    break;
-//                // GPS状态为暂停服务时
-//                case LocationProvider.TEMPORARILY_UNAVAILABLE:
-//                    // 当前GPS状态为暂停服务状态
-//                    break;
-//            }
-//        }
-//
-//        /**
-//         * GPS开启时触发
-//         */
-//        public void onProviderEnabled(String provider) {
-//            if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-//                // TODO: Consider calling
-//                //    ActivityCompat#requestPermissions
-//                // here to request the missing permissions, and then overriding
-//                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-//                //                                          int[] grantResults)
-//                // to handle the case where the user grants the permission. See the documentation
-//                // for ActivityCompat#requestPermissions for more details.
-//                runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        Toast.makeText(mContext, "位置权限未打开", Toast.LENGTH_LONG).show();
-//                    }
-//                });
-//                return;
-//            }
-////            Location location = locationManager.getLastKnownLocation(provider);
-////            updateToNewLocation(location);
-//        }
-//
-//        /**
-//         * GPS禁用时触发
-//         */
-//        public void onProviderDisabled(String provider) {
-//            updateToNewLocation(null);
-//        }
-//    };
-
-//    public void updateToNewLocation(final Location location) {
-//        if (location == null) {
-//            Toast.makeText(getApplicationContext(), "GPS定位失败",
-//                    Toast.LENGTH_SHORT).show();
-//            return;
-//        }
-//        mLatitude = location.getLatitude();
-//        mLongitude = location.getLongitude();
-//        Toast.makeText(getApplicationContext(), "经度：" + location.getLongitude() + "纬度：" + location.getLatitude(), Toast.LENGTH_SHORT).show();
-//        Log.i("", "经度：" + location.getLongitude());
-//        Log.i("", "纬度：" + location.getLatitude());
-//        if (mIsUpdateService) {
-//            mIsUpdateService = false;
-//            updateServiceInfo();
-//        }
-//        String mLocation = "GPS服务定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude +"\n界面定位信息\n经度："+mLatitude+"\n纬度："+mLongitude;
-//        mLocationTxt.setText(mLocation);
-//    }
 }
